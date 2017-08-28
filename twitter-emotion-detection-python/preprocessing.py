@@ -1,19 +1,8 @@
 import pandas as pd
-import nltk
+from lemmatization import lemmatize
+from lemmatization import pos_tagging
 from nltk.tokenize import TweetTokenizer
 import ftfy
-
-
-def try_tkenization():
-    text = "When you've still got a whole season of Wentworth to watch and a stupid cunt in work ruins it for us :(( ­ @__KirstyGA #raging #oldcunt"
-
-    # tokenize text into sentences
-    res = nltk.sent_tokenize(text)
-    print(res)
-
-    # tokenize sentence to words
-    res = nltk.word_tokenize(text)
-    print(res)
 
 
 def tokenize_tweets(df):
@@ -28,8 +17,22 @@ def fix_encoding(df):
     return df
 
 
+def get_lemmas(df : pd.DataFrame):
+
+    for index, row in df.iterrows():
+        tags = pos_tagging(row.tokens)
+        tokens_lemmas = lemmatize(tags)
+        tokens_lemmas = ";".join(["//".join(tup) for tup in tokens_lemmas]).replace(',//,;', '').replace(",", ".").replace("////;", "").replace("////", "")
+        df.set_value(index=index, col='tokens', value=tokens_lemmas)
+
+    return df
+
+
 if __name__ == '__main__':
     df = pd.read_excel('data/full_dataset.xlsx')
     df = fix_encoding(df)
     df = tokenize_tweets(df)
-    print(df.tokens.head(20))
+    df = get_lemmas(df)
+    # df.tokens = df.tokens.apply(lambda x: ";".join("//".join([x[0], x[1]])).replace(',', ''))
+    df = df.drop(['emotion_intensity', 'tweet'], axis=1)
+    df.to_csv("data/full_dataset_tokens.csv", index=False)
