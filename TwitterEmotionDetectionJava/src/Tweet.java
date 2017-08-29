@@ -19,6 +19,10 @@ public class Tweet {
         this.id = id;
     }
 
+    public WordStruct getWordAt(int index) {
+        return words.get(index);
+    }
+
     public List<WordStruct> getWords() {
         return words;
     }
