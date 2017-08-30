@@ -29,10 +29,10 @@ def get_lemmas(df : pd.DataFrame):
 
 
 if __name__ == '__main__':
-    df = pd.read_excel('data/full_dataset.xlsx')
+    df = pd.read_excel('data/merged_datasets.xlsx')
     df = fix_encoding(df)
     df = tokenize_tweets(df)
     df = get_lemmas(df)
     # df.tokens = df.tokens.apply(lambda x: ";".join("//".join([x[0], x[1]])).replace(',', ''))
     df = df.drop(['emotion_intensity', 'tweet'], axis=1)
-    df.to_csv("data/full_dataset_tokens.csv", index=False)
+    df.to_csv("data/merged_datasets_tokens.csv", index=False)

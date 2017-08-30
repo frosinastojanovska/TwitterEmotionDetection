@@ -44,6 +44,10 @@ def lemmatize(tweet):
             lemma = wordnet_lemmatizer.lemmatize(word, pos=pos_t)
         else:
             lemma = word
+
+        if word.startswith("#") and len(word) > 1:
+            lemma = wordnet_lemmatizer.lemmatize(word[1:])
+
         word = word.replace(";", " ")
         lemma = lemma.replace(";", " ")
         tweet_list.append((word, lemma))
