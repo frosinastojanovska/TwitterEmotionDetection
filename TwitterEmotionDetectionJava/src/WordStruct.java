@@ -32,4 +32,10 @@ public class WordStruct {
     public String getWordRoot() {
         return wordRoot;
     }
+
+    @Override
+    public String toString(){
+        return String.format("Word: %s\nLemma: %s\nValence: %.2f\nArousal: %.2f\n",
+                word, wordRoot, dimensions.getValence(), dimensions.getArousal());
+    }
 }

@@ -25,6 +25,26 @@ public class TweetsFeaturesExtraction {
         loadTweets(fileForDataset);
     }
 
+    public Tweet calculateValenceOfWordsOneTweet(int tweetId){
+        String parserModel = "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz";
+        LexicalizedParser lp = LexicalizedParser.loadModel(parserModel);
+        for (Tweet t : tweets) {
+            if(t.getId() == tweetId) {
+                String[] words = new String[t.getWords().size()];
+                int i = 0;
+                for (WordStruct w : t.getWords()) {
+                    getValence(w);
+                    words[i] = w.getWord();
+                    i++;
+                }
+                List<TypedDependency> tdl = getDependencies(words, lp);
+                changeValence(tdl, t);
+                return t;
+            }
+        }
+        return null;
+    }
+
     public void calculateValenceOfWords() {
         String parserModel = "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz";
         LexicalizedParser lp = LexicalizedParser.loadModel(parserModel);
