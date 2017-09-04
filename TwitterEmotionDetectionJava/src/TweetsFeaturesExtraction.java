@@ -11,11 +11,7 @@ public class TweetsFeaturesExtraction {
     private List<Tweet> tweets;
     private HashSet<String> intensifiers;
     private HashSet<String> mitigators;
-    // private HashSet<String> conjunctiveAdverbs;
-    /*
-        Conjunctive adverbs:
-        however, but, although, anyway, besides, later, instead, next, still, also
-     */
+    private HashSet<String> conjunctiveAdverbs;
 
     public TweetsFeaturesExtraction(File fileForLexicon, File fileForDataset) {
         lexicon = new HashMap<>();
@@ -25,11 +21,11 @@ public class TweetsFeaturesExtraction {
         loadTweets(fileForDataset);
     }
 
-    public Tweet calculateValenceOfWordsOneTweet(int tweetId){
+    public Tweet calculateValenceOfWordsOneTweet(int tweetId) {
         String parserModel = "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz";
         LexicalizedParser lp = LexicalizedParser.loadModel(parserModel);
         for (Tweet t : tweets) {
-            if(t.getId() == tweetId) {
+            if (t.getId() == tweetId) {
                 String[] words = new String[t.getWords().size()];
                 int i = 0;
                 for (WordStruct w : t.getWords()) {
@@ -65,45 +61,35 @@ public class TweetsFeaturesExtraction {
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(output));
-            writer.write("tweet_id,valMax1,valMax2,valMax3,valMax4,valMax5," +
-                    "valMin1,valMin2,valMin3,valMin4,valMin5,emotion\n");
+            writer.write("tweet_id,valMax1,arlMax1,valMax2,arlMax2,valMax3,arlMax3,valMax4,arlMax4," +
+                    "valMax5,arlMax5,valMin1,arlMin1,valMin2,arlMin2,valMin3,arlMin3,valMin4,arlMin4," +
+                    "valMin5,arlMin5,emotion\n");
             for (Tweet t : tweets) {
-                List<Double> positiveValences = new ArrayList<>();
-                List<Double> negativeValences = new ArrayList<>();
+                List<Dimensions> positiveValences = new ArrayList<>();
+                List<Dimensions> negativeValences = new ArrayList<>();
                 for (WordStruct w : t.getWords()) {
                     double valence = w.getValence();
+                    Dimensions dimensions = w.getDimensions();
                     if (valence < 0)
-                        negativeValences.add(valence);
+                        negativeValences.add(dimensions);
                     else if (valence > 0)
-                        positiveValences.add(valence);
+                        positiveValences.add(dimensions);
                     else {
-                        positiveValences.add(valence);
-                        negativeValences.add(valence);
+                        positiveValences.add(dimensions);
+                        negativeValences.add(dimensions);
                     }
                 }
                 while (positiveValences.size() < 5)
-                    positiveValences.add(0.0);
+                    positiveValences.add(new Dimensions(0.0, 0.0));
                 while (negativeValences.size() < 5)
-                    negativeValences.add(0.0);
+                    negativeValences.add(new Dimensions(0.0, 0.0));
 
                 Collections.sort(positiveValences);
                 Collections.reverse(positiveValences);
                 Collections.sort(negativeValences);
 
-                StringBuilder builder = new StringBuilder();
-                String SEPARATOR = ",";
-                for (double val : positiveValences.subList(0, 5)) {
-                    builder.append(val);
-                    builder.append(SEPARATOR);
-                }
-                String positive = builder.toString();
-
-                builder = new StringBuilder();
-                for (double val : negativeValences.subList(0, 5)) {
-                    builder.append(val);
-                    builder.append(SEPARATOR);
-                }
-                String negative = builder.toString();
+                String positive = mergeFeatures(positiveValences);
+                String negative = mergeFeatures(negativeValences);
 
                 String line = String.format("%d,%s%s%s\n", t.getId(), positive, negative, t.getEmotion());
                 writer.write(line);
@@ -121,6 +107,18 @@ public class TweetsFeaturesExtraction {
         }
     }
 
+    private String mergeFeatures(List<Dimensions> dimensions) {
+        StringBuilder builder = new StringBuilder();
+        String SEPARATOR = ",";
+        for (Dimensions d : dimensions.subList(0, 5)) {
+            builder.append(d.getValence());
+            builder.append(SEPARATOR);
+            builder.append(d.getArousal());
+            builder.append(SEPARATOR);
+        }
+        return builder.toString();
+    }
+
     private void changeValence(List<TypedDependency> tdl, Tweet t) {
         // first rule - Negation
         negationValenceModification(tdl, t);
@@ -128,6 +126,10 @@ public class TweetsFeaturesExtraction {
         intensifiersValenceModification(tdl, t);
         // third rule - Mitigators
         mitigatorsValenceModification(tdl, t);
+        // forth rule - Negative words shifters
+        negativeWordsValenceModification(tdl, t);
+        // fifth rule - Conjunctive Adverbs (connectors)
+        conjunctiveAdverbsValenceModification(t);
     }
 
     private void negationValenceModification(List<TypedDependency> tdl, Tweet tweet) {
@@ -165,7 +167,7 @@ public class TweetsFeaturesExtraction {
         for (TypedDependency td : tdl) {
             String rel = td.reln().getLongName();
             String dependent = td.dep().word().toLowerCase();
-            if (intensifiers.contains(dependent) && ! rel.equals("root")) {
+            if (intensifiers.contains(dependent) && !rel.equals("root")) {
                 int governor = td.gov().index();
                 for (TypedDependency second_td : tdl) {
                     int gov = second_td.gov().index();
@@ -187,7 +189,7 @@ public class TweetsFeaturesExtraction {
         for (TypedDependency td : tdl) {
             String rel = td.reln().getLongName();
             String dependent = td.dep().word().toLowerCase();
-            if (mitigators.contains(dependent) && ! rel.equals("root")) {
+            if (mitigators.contains(dependent) && !rel.equals("root")) {
                 int governor = td.gov().index();
                 for (TypedDependency second_td : tdl) {
                     int gov = second_td.gov().index();
@@ -200,6 +202,45 @@ public class TweetsFeaturesExtraction {
                 }
                 WordStruct wordForChanging = tweet.getWordAt(governor - 1);
                 changeValenceMitigatorsRule(wordForChanging);
+            }
+        }
+    }
+
+    private void conjunctiveAdverbsValenceModification(Tweet tweet) {
+        boolean flag = false;
+        for (WordStruct word : tweet.getWords()) {
+            if (conjunctiveAdverbs.contains(word.getWord())) {
+                flag = true;
+                break;
+            }
+        }
+        if (flag) {
+            for (WordStruct word : tweet.getWords()) {
+                changeValenceConjunctiveAdverbsRule(word);
+            }
+        }
+    }
+
+    private void negativeWordsValenceModification(List<TypedDependency> tdl, Tweet tweet) {
+        for (TypedDependency td : tdl) {
+            double dependentValence = tweet.getWordAt(td.dep().index() - 1).getValence();
+            int dependent = td.dep().index();
+            int governor = td.gov().index();
+            if (governor == 0)
+                continue;
+            double governorValence = tweet.getWordAt(td.gov().index() - 1).getValence();
+            if (dependentValence < 0 && governorValence > 0) {
+                for (TypedDependency second_td : tdl) {
+                    int gov = second_td.gov().index();
+                    int dep = second_td.dep().index();
+                    boolean flag = second_td.dep().index() == dependent;
+                    if (gov == governor && !flag) {
+                        WordStruct wordForChanging = tweet.getWordAt(dep - 1);
+                        changeValenceNegativeWordsRule(wordForChanging);
+                    }
+                }
+                WordStruct wordForChanging = tweet.getWordAt(governor - 1);
+                changeValenceNegativeWordsRule(wordForChanging);
             }
         }
     }
@@ -222,6 +263,19 @@ public class TweetsFeaturesExtraction {
         word.setValence(valence);
     }
 
+    private void changeValenceConjunctiveAdverbsRule(WordStruct word) {
+        double valence = 0;
+        word.setValence(valence);
+    }
+
+    private void changeValenceNegativeWordsRule(WordStruct word) {
+        double valence = word.getValence();
+        if (valence > 0) {
+            valence *= -1;
+            word.setValence(valence);
+        }
+    }
+
     private List<TypedDependency> getDependencies(String[] tweetWords, LexicalizedParser lp) {
         List<CoreLabel> rawWords = SentenceUtils.toCoreLabelList(tweetWords);
         Tree parse = lp.apply(rawWords);
@@ -237,7 +291,7 @@ public class TweetsFeaturesExtraction {
         String w = word.getWordRoot().toLowerCase();
         if (lexicon.containsKey(w)) {
             valence = lexicon.get(w).getValence() - 4.5;
-            arousal = lexicon.get(w).getArousal() - 4;
+            arousal = lexicon.get(w).getArousal() - 4.5;
         }
         word.setValence(valence);
         word.setArousal(arousal);
@@ -246,6 +300,7 @@ public class TweetsFeaturesExtraction {
     private void loadSets() {
         intensifiers = new HashSet<>();
         mitigators = new HashSet<>();
+        conjunctiveAdverbs = new HashSet<>();
 
         intensifiers.add("absolutely");
         intensifiers.add("always");
@@ -273,6 +328,17 @@ public class TweetsFeaturesExtraction {
         mitigators.add("least");
         mitigators.add("less");
         mitigators.add("slightly");
+
+        conjunctiveAdverbs.add("however");
+        conjunctiveAdverbs.add("but");
+        conjunctiveAdverbs.add("although");
+        conjunctiveAdverbs.add("anyway");
+        conjunctiveAdverbs.add("besides");
+        conjunctiveAdverbs.add("later");
+        conjunctiveAdverbs.add("instead");
+        conjunctiveAdverbs.add("next");
+        conjunctiveAdverbs.add("still");
+        conjunctiveAdverbs.add("also");
     }
 
     private void loadLexicon(File file) {

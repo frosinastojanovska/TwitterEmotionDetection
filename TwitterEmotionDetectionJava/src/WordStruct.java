@@ -25,6 +25,10 @@ public class WordStruct {
         dimensions.setValence(valence);
     }
 
+    public Dimensions getDimensions() {
+        return this.dimensions;
+    }
+
     public String getWord() {
         return word;
     }
@@ -34,7 +38,7 @@ public class WordStruct {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return String.format("Word: %s\nLemma: %s\nValence: %.2f\nArousal: %.2f\n",
                 word, wordRoot, dimensions.getValence(), dimensions.getArousal());
     }

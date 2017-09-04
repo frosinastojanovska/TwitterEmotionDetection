@@ -1,4 +1,4 @@
-public class Dimensions {
+public class Dimensions implements Comparable<Dimensions> {
     private double valence;
     private double arousal;
 
@@ -21,5 +21,10 @@ public class Dimensions {
 
     public void setArousal(double arousal) {
         this.arousal = arousal;
+    }
+
+    @Override
+    public int compareTo(Dimensions o) {
+        return Double.compare(this.valence, o.valence);
     }
 }
