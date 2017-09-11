@@ -1,6 +1,7 @@
 from nltk import WordNetLemmatizer
 from nltk import pos_tag
 from nltk import map_tag
+import re
 
 
 def pos_tagging(tweet):
@@ -40,6 +41,8 @@ def lemmatize(tweet):
     for token_tag in tweet:
         word = token_tag[0]
         pos_t = token_tag[1]
+
+        word = re.sub(r'(.)\1{2,}', r'\1', word)
 
         # remove users' tags
         if word.startswith("@") and len(word) > 1:

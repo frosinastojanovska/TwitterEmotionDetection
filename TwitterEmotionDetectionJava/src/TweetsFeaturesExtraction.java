@@ -107,6 +107,42 @@ public class TweetsFeaturesExtraction {
         }
     }
 
+    public void saveAllValencesToFile(File output){
+        BufferedWriter writer = null;
+        try {
+            writer = new BufferedWriter(new FileWriter(output));
+            writer.write("tweet_id,emotion,valences...\n");
+            StringBuilder builder = new StringBuilder();
+            String SEPARATOR = ",";
+            for (Tweet t : tweets) {
+                for (WordStruct w : t.getWords()) {
+                    String lemma = w.getWordRoot();
+                    Dimensions dimensions = w.getDimensions();
+                    builder.append(SEPARATOR);
+                    builder.append(lemma);
+                    builder.append(SEPARATOR);
+                    builder.append(dimensions.getValence());
+                    builder.append(SEPARATOR);
+                    builder.append(dimensions.getArousal());
+                }
+
+                String line = String.format("%d,%s%s\n", t.getId(), t.getEmotion(), builder.toString());
+                writer.write(line);
+                builder = new StringBuilder();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     private String mergeFeatures(List<Dimensions> dimensions) {
         StringBuilder builder = new StringBuilder();
         String SEPARATOR = ",";
