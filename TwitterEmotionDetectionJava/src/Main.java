@@ -7,8 +7,7 @@ public class Main {
         File file2 = new File("Data/merged_datasets_tokens.csv");
         TweetsFeaturesExtraction featuresExtraction = new TweetsFeaturesExtraction(file1, file2);
         featuresExtraction.calculateValenceOfWords();
-        featuresExtraction.saveAllValencesToFile(new File("Data/output.csv"));
-//         featuresExtraction.saveFeaturesToFile(new File("Data/merged_tweets_features.csv"));
+        featuresExtraction.saveWordsDimensionsToFile(new File("Data/output.csv"));
         /*Tweet result = featuresExtraction.calculateValenceOfWordsOneTweet(41179);
         System.out.println(result.getWords());*/
     }

@@ -6,7 +6,7 @@ from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 
 
-def feature_selection(X, X2, y, features_names, file_valences, file_arousal, file_importances):
+def feature_selection(X, X2, y, features_names, file_valences, file_arousal, file_merged, file_importances):
     """
     Feature selection
 
@@ -31,7 +31,7 @@ def feature_selection(X, X2, y, features_names, file_valences, file_arousal, fil
 
     # model = SelectFromModel(clf, prefit=True)
     # X_new = model.transform(X)
-    mask = clf.feature_importances_ > 0.0011
+    mask = clf.feature_importances_ > 0.001
     X_new = X[:, mask]
     X2_new = X2[:, mask]
     emotions = y[:, 0]
@@ -42,9 +42,17 @@ def feature_selection(X, X2, y, features_names, file_valences, file_arousal, fil
     temp = pd.DataFrame(X_new)
     temp['emotion_class'] = emotions
     temp.to_csv(file_valences, index=False)
+    valences = temp.copy()
+    valences.columns = ['v_' + str(i) for i in range(np.sum(mask))] + ['emotion']
     temp = pd.DataFrame(X2_new)
     temp['emotion_class'] = emotions
     temp.to_csv(file_arousal, index=False)
+    arousals = temp.copy()
+    arousals.columns = ['a_' + str(i) for i in range(np.sum(mask))] + ['emotion']
+    merged = pd.concat([valences, arousals], axis=1)
+    merged = merged.ix[:, 0:merged.shape[1] - 1]
+    merged.to_csv(file_merged, index=False)
+    print(np.sum(mask))
 
 
 def generate_initial_features(file, feature_words, file1, file2, file3, size):
@@ -112,10 +120,14 @@ if __name__ == '__main__':
         x2 = pd.read_csv(file2)
         y = pd.read_csv(file3).as_matrix()
     else:
-        x, x2, y = generate_initial_features('data/output.csv', words, file1, file2, file3, 6755)
+        x, x2, y = generate_initial_features('data/output.csv', words, file1, file2, file3, 5616)
 
     X = x.as_matrix()
     X2 = x2.as_matrix()
-    feature_selection(X, X2, y, x.columns.values, 'data_final/selected_features_valence.csv',
-                      'data_final/selected_features_arousal.csv', 'data/feature_importances.csv')
+    feature_selection(X, X2, y, x.columns.values,
+                      'data_final/selected_features_valence.csv',
+                      'data_final/selected_features_arousal.csv',
+                      'data_final/selected_features_merged.csv',
+                      'data/feature_importances.csv')
+
     print()

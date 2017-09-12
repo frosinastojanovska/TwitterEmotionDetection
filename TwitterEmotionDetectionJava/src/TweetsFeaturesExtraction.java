@@ -57,57 +57,7 @@ public class TweetsFeaturesExtraction {
         }
     }
 
-    public void saveFeaturesToFile(File output) {
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(output));
-            writer.write("tweet_id,valMax1,arlMax1,valMax2,arlMax2,valMax3,arlMax3,valMax4,arlMax4," +
-                    "valMax5,arlMax5,valMin1,arlMin1,valMin2,arlMin2,valMin3,arlMin3,valMin4,arlMin4," +
-                    "valMin5,arlMin5,emotion\n");
-            for (Tweet t : tweets) {
-                List<Dimensions> positiveValences = new ArrayList<>();
-                List<Dimensions> negativeValences = new ArrayList<>();
-                for (WordStruct w : t.getWords()) {
-                    double valence = w.getValence();
-                    Dimensions dimensions = w.getDimensions();
-                    if (valence < 0)
-                        negativeValences.add(dimensions);
-                    else if (valence > 0)
-                        positiveValences.add(dimensions);
-                    else {
-                        positiveValences.add(dimensions);
-                        negativeValences.add(dimensions);
-                    }
-                }
-                while (positiveValences.size() < 5)
-                    positiveValences.add(new Dimensions(0.0, 0.0));
-                while (negativeValences.size() < 5)
-                    negativeValences.add(new Dimensions(0.0, 0.0));
-
-                Collections.sort(positiveValences);
-                Collections.reverse(positiveValences);
-                Collections.sort(negativeValences);
-
-                String positive = mergeFeatures(positiveValences);
-                String negative = mergeFeatures(negativeValences);
-
-                String line = String.format("%d,%s%s%s\n", t.getId(), positive, negative, t.getEmotion());
-                writer.write(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    public void saveAllValencesToFile(File output){
+    public void saveWordsDimensionsToFile(File output){
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(output));
