@@ -4,7 +4,7 @@ import itertools
 
 
 def plot_confusion_matrix(matrix1, matrix2, matrix3, matrix4, classes):
-    font = {'fontname': 'Calibri', 'size': 16}
+    font = {'fontname': 'Calibri', 'size': 20}
     for matrix, title in zip([matrix1, matrix2, matrix3, matrix4], ['Random Forest', 'SVM', 'LDA', 'Multilayer Perceptron']):
         plt.figure()
         plt.imshow(matrix, interpolation='nearest', cmap=plt.cm.Blues)
