@@ -31,7 +31,7 @@ def feature_selection(X, X2, y, features_names, file_valences, file_arousal, fil
 
     # model = SelectFromModel(clf, prefit=True)
     # X_new = model.transform(X)
-    mask = clf.feature_importances_ > 0.001
+    mask = clf.feature_importances_ > 0.0006
     X_new = X[:, mask]
     X2_new = X2[:, mask]
     emotions = y[:, 0]
@@ -70,7 +70,7 @@ def generate_initial_features(file, feature_words, file1, file2, file3, size):
     y = np.empty([size, 1], dtype='str')
 
     with open(file) as csvDataFile:
-        csv_reader = csv.reader(csvDataFile)
+        csv_reader = csv.reader(csvDataFile, delimiter=',', quoting=csv.QUOTE_NONE)
         for row in csv_reader:
             # df.loc[-1] = np.zeros(n)            # adding a row
             # df.index = df.index + 1             # shifting index
@@ -102,7 +102,7 @@ def load_all_feature_names(file):
     """
     feature_names = {}
     with open(file) as csvDataFile:
-        csv_reader = csv.reader(csvDataFile)
+        csv_reader = csv.reader(csvDataFile, delimiter=',', quoting=csv.QUOTE_NONE)
         for row in csv_reader:
             for i in range(2, len(row), 3):
                 if row[i] not in feature_names.keys():
@@ -115,12 +115,12 @@ if __name__ == '__main__':
     file1 = 'data/valence_features.csv'
     file2 = 'data/arousal_features.csv'
     file3 = 'data/emotions.csv'
-    if os.path.exists(file1) and os.path.exists(file3):
+    if os.path.exists(file1) and os.path.exists(file2) and os.path.exists(file3):
         x = pd.read_csv(file1)
         x2 = pd.read_csv(file2)
         y = pd.read_csv(file3).as_matrix()
     else:
-        x, x2, y = generate_initial_features('data/output.csv', words, file1, file2, file3, 5616)
+        x, x2, y = generate_initial_features('data/output.csv', words, file1, file2, file3, 5348)
 
     X = x.as_matrix()
     X2 = x2.as_matrix()
