@@ -152,4 +152,9 @@ fabric.properties
 
 data/*
 data_final/*
-data_final_final/*
+stanford_parser/*
+lexicons/*
+
+# Word2vec trained model
+glove.twitter.27B.200d.txt
+glove.twitter.27B.zip
