@@ -1,4 +1,4 @@
-from nltk import WordNetLemmatizer, WekaClassifier
+from nltk import WordNetLemmatizer
 from nltk import pos_tag
 from nltk import map_tag
 import re

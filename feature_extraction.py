@@ -44,7 +44,8 @@ class FeatureExtractionContextValenceShifting:
             valences = []
             for sent in row.lemmas:
                 valences.append(self.get_initial_valences_sentence(sent))
-
+            if index % 100 == 0:
+                print(index)
             df.set_value(index=index, col='valences', value=valences)
 
         return df

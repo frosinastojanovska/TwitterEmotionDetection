@@ -31,15 +31,18 @@ def feature_selection(X, y, feature_names):
     return selected, mask
 
 
-def generate_initial_features(dataset):
+def generate_initial_features(dataset, vocab=None):
     """ Create the initial features from the vocabulary of the dataset.
 
     :param dataset: dataset containing the tweets with columns 'id', 'class', 'lemmas', and 'valences'
     :type dataset: pandas.DataFrame
+    :param vocab: vocabulary of the dataset
+    :type vocab: list
     :return: tuple of the dataset with initial features and the vocabulary
     :rtype: (pandas.DataFrame, list)
     """
-    vocab = get_vocabulary(dataset)
+    if vocab is None:
+        vocab = get_vocabulary(dataset)
     # dictionary of every word in the vocabulary with its index
     dictionary = dict()
     for i in range(len(vocab)):
@@ -53,7 +56,7 @@ def generate_initial_features(dataset):
         lemmas = list(chain(*row.lemmas))
         featured_dataset.set_value(index=index, col='lemmas', value=lemmas)
         # -1 is the value when the word is not present
-        initial_valences = np.zeros(len(vocab)) - 1
+        initial_valences = np.zeros(len(vocab))
         for lemma, valence in zip(lemmas, valences):
             initial_valences[dictionary[lemma.lower()]] = valence
         featured_dataset.set_value(index=index, col='valences', value=initial_valences)
