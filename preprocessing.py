@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from lemmatization import lemmatize
 from lemmatization import pos_tagging
@@ -66,21 +67,22 @@ def get_lemmas(df):
     return df
 
 
-def get_word_embeddings(df):
+def get_word_embeddings(df, max_word_num):
     """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word embeddings.
 
     :param df: data frame containing column tokens for tweet tokens
     :type df: pandas.DataFrame
+    :param max_word_num: size of the word embedding array
+    :type max_word_num: int
     :return: modified data frame with new column for embedding representation of tweets
     :rtype: pandas.DataFrame
     """
-    word_embeddings = load_embeddings('data/glove.6B.100d.txt')
+    word_embeddings = load_embeddings('data/glove.twitter.27B.100d.txt')
     df['embeddings'] = ''
     for index, row in df.iterrows():
-        embeddings = []
-        for sent in row.tokens:
-            for token in sent:
-                embeddings.append(encode_word(token, word_embeddings))
+        embeddings = np.zeros((max_word_num, 100))
+        result = np.array([encode_word(token, word_embeddings) for sent in row.tokens for token in sent])
+        embeddings[:result.shape[0], :] = result
         df.set_value(index=index, col='embeddings', value=embeddings)
     return df
 
@@ -94,7 +96,6 @@ def load_embeddings(file_name):
     :rtype: dict
     """
     embeddings = dict()
-    i = 0  # TODO: Remove this line
     with open(file_name, 'r', encoding='utf-8') as doc:
         line = doc.readline()
         while line != '':
@@ -103,9 +104,6 @@ def load_embeddings(file_name):
             vals = parts[1:]
             embeddings[parts[0]] = vals
             line = doc.readline()
-            i += 1  # TODO: Remove this line
-            if i > 5:  # TODO: Remove this line
-                break  # TODO: Remove this line
     return embeddings
 
 
@@ -131,7 +129,7 @@ def encode_word(word, embeddings):
             vec = embeddings[w]
         else:
             vec = [0] * 100
-    return vec
+    return np.array(vec)
 
 
 if __name__ == '__main__':
