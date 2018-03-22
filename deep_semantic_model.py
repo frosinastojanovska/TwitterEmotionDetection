@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import keras as k
 import keras.layers as kl
+from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, get_word_embeddings
 
 
 def load_data():
@@ -9,9 +10,15 @@ def load_data():
 
     :return:
     """
-    df = pd.read_csv('data/text_emotion.csv')
-    # word embeddings
-    word_embed = ...
+    df = pd.read_csv('data/text_emotion_v2.csv')
+    col_names = df.columns.values
+    col_names[len(col_names) - 1] = 'tweet'
+    df.columns = col_names
+    df = fix_encoding(df)
+    df = split_tweet_sentences(df)
+    df = tokenize_tweets(df)
+    df = get_word_embeddings(df)
+    word_embed = df['embeddings'].values
     classes = df['sentiment'].values
     return word_embed, classes, np.unique(classes).shape[0]
 
@@ -53,7 +60,7 @@ if __name__ == '__main__':
     shape = ...
 
     model = cnn_model(n_classes, shape)
-    train_y = k.utils.to_categorical(train_y, 2)
-    model.fit(train_X, test_y, nb_epoch=200)
-    test_y = k.utils.to_categorical(test_y, 2)
-    score = model.evaluate(test_X, test_y, batch_size=128)
+    #train_y = k.utils.to_categorical(train_y, 2)
+    #model.fit(train_X, test_y, nb_epoch=200)
+    #test_y = k.utils.to_categorical(test_y, 2)
+    #score = model.evaluate(test_X, test_y, batch_size=128)

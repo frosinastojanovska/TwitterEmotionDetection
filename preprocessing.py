@@ -2,8 +2,9 @@ import pandas as pd
 from lemmatization import lemmatize
 from lemmatization import pos_tagging
 from nltk.tokenize import TweetTokenizer
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
 import ftfy
+from textblob import Word
 
 
 def split_tweet_sentences(df):
@@ -63,6 +64,74 @@ def get_lemmas(df):
         df.set_value(index=index, col='lemmas', value=tokens_lemmas)
 
     return df
+
+
+def get_word_embeddings(df):
+    """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word embeddings.
+
+    :param df: data frame containing column tokens for tweet tokens
+    :type df: pandas.DataFrame
+    :return: modified data frame with new column for embedding representation of tweets
+    :rtype: pandas.DataFrame
+    """
+    word_embeddings = load_embeddings('data/glove.6B.100d.txt')
+    df['embeddings'] = ''
+    for index, row in df.iterrows():
+        embeddings = []
+        for sent in row.tokens:
+            for token in sent:
+                embeddings.append(encode_word(token, word_embeddings))
+        df.set_value(index=index, col='embeddings', value=embeddings)
+    return df
+
+
+def load_embeddings(file_name):
+    """ Loads word embeddings from the given file
+
+    :param file_name: name of the file containing word embeddings
+    :type file_name: str
+    :return: dictionary of words with their corresponding word embeddings
+    :rtype: dict
+    """
+    embeddings = dict()
+    i = 0  # TODO: Remove this line
+    with open(file_name, 'r', encoding='utf-8') as doc:
+        line = doc.readline()
+        while line != '':
+            line = line.rstrip('\n').lower()
+            parts = line.split(' ')
+            vals = parts[1:]
+            embeddings[parts[0]] = vals
+            line = doc.readline()
+            i += 1  # TODO: Remove this line
+            if i > 5:  # TODO: Remove this line
+                break  # TODO: Remove this line
+    return embeddings
+
+
+def encode_word(word, embeddings):
+    """ Convert word to its word embedding vector. If the word is not contained in embeddings dictionary, word
+    embedding of its corrected version is calculated. If the corrected word is not contained in embeddings
+    dictionary, zero list is returned.
+
+    :param word: word to be converted into its word embedding representation
+    :type word: str
+    :param embeddings: dictionary of words with their corresponding word embeddings
+    :type embeddings: dict
+    :return: word embedding representation of the word
+    :rtype: list
+    """
+    word = word.lower()
+    if word in embeddings.keys():
+        vec = embeddings[word]
+    else:
+        w = Word(word)
+        w = w.spellcheck()[0][0]
+        if w in embeddings.keys():
+            vec = embeddings[w]
+        else:
+            vec = [0] * 100
+    return vec
 
 
 if __name__ == '__main__':
