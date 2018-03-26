@@ -154,6 +154,9 @@ data/*
 data_final/*
 stanford_parser/*
 lexicons/*
+models/*
+logs/*
+scores/*
 
 # Word2vec trained model
 glove.twitter.27B.200d.txt
