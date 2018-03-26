@@ -67,22 +67,18 @@ def get_lemmas(df):
     return df
 
 
-def get_word_embeddings(df, max_word_num):
+def get_word_embeddings(df):
     """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word embeddings.
 
     :param df: data frame containing column tokens for tweet tokens
     :type df: pandas.DataFrame
-    :param max_word_num: size of the word embedding array
-    :type max_word_num: int
     :return: modified data frame with new column for embedding representation of tweets
     :rtype: pandas.DataFrame
     """
     word_embeddings = load_embeddings('data/glove.twitter.27B.100d.txt')
     df['embeddings'] = ''
     for index, row in df.iterrows():
-        embeddings = np.zeros((max_word_num, 100))
-        result = np.array([encode_word(token, word_embeddings) for sent in row.tokens for token in sent])
-        embeddings[:result.shape[0], :] = result
+        embeddings = [encode_word(token, word_embeddings) for sent in row.tokens for token in sent]
         df.set_value(index=index, col='embeddings', value=embeddings)
     return df
 
@@ -129,7 +125,7 @@ def encode_word(word, embeddings):
             vec = embeddings[w]
         else:
             vec = [0] * 100
-    return np.array(vec)
+    return vec
 
 
 if __name__ == '__main__':

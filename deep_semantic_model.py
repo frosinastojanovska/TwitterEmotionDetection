@@ -7,6 +7,34 @@ from keras.callbacks import ModelCheckpoint, CSVLogger
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, get_word_embeddings
 
 
+def create_model(model_type, num_classes, input_shape):
+    """ Creates model of specified model type for classification of emotions with word2vec embeddings
+
+    :param model_type: type of deep learning model to be instantiated
+    :type model_type: str
+    :param num_classes: number of classes
+    :type num_classes: int
+    :param input_shape: shape of the input
+    :type input_shape: tuple
+    :return: deep learning model
+    """
+    if model_type == 'cnn':
+        model = cnn_model(num_classes, input_shape)
+    elif model_type == 'lstm1':
+        model = lstm_model_1(num_classes, input_shape)
+    elif model_type == 'lstm2':
+        model = lstm_model_2(num_classes, input_shape)
+    else:
+        raise ValueError('Model type should be one of the following: cnn or lstm')
+    opt = k.optimizers.Adam(amsgrad=True)
+    model.compile(optimizer=opt,
+                  loss='categorical_crossentropy',
+                  metrics=[k.metrics.categorical_accuracy,
+                           k.metrics.mae,
+                           k.metrics.top_k_categorical_accuracy])
+    return model
+
+
 def cnn_model(num_classes, input_shape):
     """ Creates CNN model for classification of emotions with word2vec embeddings
 
@@ -29,12 +57,45 @@ def cnn_model(num_classes, input_shape):
     model.add(kl.Dense(num_classes))
     model.add(kl.Activation('sigmoid'))
 
-    opt = k.optimizers.Adam(amsgrad=True)
-    model.compile(optimizer=opt,
-                  loss='categorical_crossentropy',
-                  metrics=[k.metrics.categorical_accuracy,
-                           k.metrics.mae,
-                           k.metrics.top_k_categorical_accuracy])
+    return model
+
+
+def lstm_model_1(num_classes, input_shape):
+    """ Creates LSTM model for classification of emotions with word2vec embeddings
+
+    :param num_classes: number of classes
+    :type num_classes: int
+    :param input_shape: shape of the input
+    :type input_shape: tuple
+    :return: lstm model
+    """
+    model = k.Sequential()
+
+    model.add(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=input_shape))
+    model.add(kl.Dense(num_classes))
+    model.add(kl.Activation('sigmoid'))
+
+    return model
+
+
+def lstm_model_2(num_classes, input_shape):
+    """ Creates LSTM model for classification of emotions with word2vec embeddings with additional hidden layer
+
+    :param num_classes: number of classes
+    :type num_classes: int
+    :param input_shape: shape of the input
+    :type input_shape: tuple
+    :return: lstm model
+    """
+    model = k.Sequential()
+
+    model.add(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=input_shape))
+    model.add(kl.Dense(128))
+    model.add(kl.Dropout(0.2))
+    model.add(kl.Activation('relu'))
+    model.add(kl.Dense(num_classes))
+    model.add(kl.Activation('sigmoid'))
+
     return model
 
 
