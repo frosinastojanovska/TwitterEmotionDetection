@@ -8,11 +8,7 @@ from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, 
 
 
 def load_data():
-    df = pd.read_csv('data/data_sentiment.csv', header=None, names=['sentiment', 'tweet_id',
-                                                                    'date', 'query', 'user',
-                                                                    'tweet'], encoding='latin-1')
-
-    df = df.sample(frac=1).reset_index(drop=True)
+    df = pd.read_csv('data/sentiment.csv')
 
     if os.path.exists('data/text_sentiment_w2vec.npy'):
         word_embed = np.load('data/text_sentiment_w2vec.npy')
