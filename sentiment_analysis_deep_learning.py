@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from keras.preprocessing.sequence import pad_sequences
 from deep_semantic_model import create_model
-from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, get_word_embeddings
+from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
+    get_word_embeddings, get_lexcion_values, get_lemmas, fix_spelling
 
 
 def load_data():
@@ -17,9 +18,7 @@ def load_data():
         df = split_tweet_sentences(df)
         df = tokenize_tweets(df)
         df = get_word_embeddings(df)
-        df.embeddings = pad_sequences(df.embeddings.values.tolist(), maxlen=150)
-        word_embed = df['embeddings'].values
-        word_embed = np.stack(word_embed, axis=0)
+        word_embed = pad_sequences(df.embeddings.values.tolist(), maxlen=150, dtype='float')
         np.save('data/text_sentiment_w2vec', word_embed)
 
     df[df.sentiment == 4] = 1
@@ -27,6 +26,22 @@ def load_data():
     c = np.unique(classes).tolist()
 
     return word_embed, classes, len(c)
+
+
+def load_sentiment_data():
+    if os.path.exists('data/text_sentiment_lexicon.npy'):
+        lexicon_features = np.load('data/text_sentiment_lexicon.npy')
+    else:
+        df = pd.read_csv('data/sentiment.csv')
+        df = fix_encoding(df)
+        df = fix_spelling(df)
+        df = split_tweet_sentences(df)
+        df = tokenize_tweets(df)
+        df = get_lemmas(df)
+        df = get_lexcion_values(df)
+        lexicon_features = pad_sequences(df.lexicon.values.tolist(), maxlen=150, dtype='float')
+        np.save('data/text_sentiment_lexicon', lexicon_features)
+    return lexicon_features
 
 
 def cnn_sentiment_classification(split):

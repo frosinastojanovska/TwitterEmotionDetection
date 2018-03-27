@@ -1,11 +1,11 @@
-import numpy as np
+import re
 import pandas as pd
 from lemmatization import lemmatize
 from lemmatization import pos_tagging
 from nltk.tokenize import TweetTokenizer
 from nltk.tokenize import sent_tokenize, word_tokenize
 import ftfy
-from textblob import Word
+from textblob import Word, TextBlob
 
 
 def split_tweet_sentences(df):
@@ -42,6 +42,18 @@ def fix_encoding(df):
     :rtype: pandas.DataFrame
     """
     df.tweet = [ftfy.fix_text(tweet) for tweet in df.tweet]
+    return df
+
+
+def fix_spelling(df):
+    """ Gets dataset of tweets text and fixes the spelling
+
+        :param df: data frame containing column tweet
+        :type df: pandas.DataFrame
+        :return: modified data frame tweet column with new fixed/encoded text
+        :rtype: pandas.DataFrame
+        """
+    df.tweet = [str(TextBlob(re.sub(r'(.)\1{2,}', r'\1\1', tweet)).correct()) for tweet in df.tweet]
     return df
 
 
@@ -126,6 +138,41 @@ def encode_word(word, embeddings):
         else:
             vec = [0] * 100
     return vec
+
+
+def load_lexicon():
+    """ Loads sentiment lexicon
+
+    :return: lexicon
+    :rtype: pandas.DataFrame
+    """
+    lexicon = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1, 2, 5, 8], index_col=0)
+    lexicon.columns = ['word', 'valence', 'arousal', 'dominance']
+    return lexicon
+
+
+def get_lexicon_value(lexicon, lemma):
+    if lemma in lexicon.word.values:
+        return [lexicon.loc[lexicon['word'] == lemma].valence.values[0],
+                lexicon.loc[lexicon['word'] == lemma].arousal.values[0],
+                lexicon.loc[lexicon['word'] == lemma].dominance.values[0]]
+    return [0, 0, 0]
+
+
+def get_lexcion_values(df):
+    """ Loads word lexicon values for the given dataset
+
+        :param df: dataset containing the lemmatized tweets
+        :type df: pandas.DataFrame
+        :return: data frame with corresponding lexcion values for ecah tweet
+        :rtype: pandas.DataFrame
+        """
+    lexicon = load_lexicon()
+    df['lexicon'] = ''
+    for index, row in df.iterrows():
+        values = [get_lexicon_value(lexicon, lemma) for sent in row.lemmas for lemma in sent]
+        df.set_value(index=index, col='lexicon', value=values)
+    return df
 
 
 if __name__ == '__main__':

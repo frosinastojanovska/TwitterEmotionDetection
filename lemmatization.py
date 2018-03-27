@@ -40,7 +40,7 @@ def lemmatize(tweet):
         word = token_tag[0]
         pos_t = token_tag[1]
 
-        word = re.sub(r'(.)\1{2,}', r'\1', word)
+        # word = re.sub(r'(.)\1{2,}', r'\1', word)
 
         # remove users' tags
         if word.startswith('@') and len(word) > 1:
