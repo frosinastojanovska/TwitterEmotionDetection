@@ -45,6 +45,9 @@ def load_sentiment_data():
 
 
 def cnn_sentiment_classification(split):
+    model_filepath = 'models/cnn_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/cnn_semantic_model.log'
+    scores_filepath = 'scores/cnn_semantic_model.txt'
     data_X, data_y, n_classes = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
@@ -55,18 +58,31 @@ def cnn_sentiment_classification(split):
     test_y = k.utils.to_categorical(test_y, n_classes)
     model = create_model('cnn', n_classes, shape)
     # checkpoint
-    filepath = "models/cnn_semantic_model-{epoch:02d}-{val_loss:.2f}.h5"
-    checkpoint = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
-    csv_logger = k.callbacks.CSVLogger('logs/cnn_semantic_model.log')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
     model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
     # model.save_weights("models/cnn_semantic_model.h5")
 
     score = model.evaluate(test_X, test_y, batch_size=128)
-    np.savetxt('scores/cnn_semantic_model.txt', np.array(score))
+    np.savetxt(scores_filepath, np.array(score))
 
 
-def lstm_sentiment_classification(split):
+def lstm_sentiment_classification(split, model_type):
+    if model_type == 'lstm1':
+        model_filepath = 'models/lstm1_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+        logs_filepath = 'logs/lstm1_semantic_model.log'
+        scores_filepath = 'scores/lstm1_semantic_model.txt'
+    elif model_type == 'lstm2':
+        model_filepath = 'models/lstm2_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+        logs_filepath = 'logs/lstm2_semantic_model.log'
+        scores_filepath = 'scores/lstm2_semantic_model.txt'
+    elif model_type == 'bi_lstm':
+        model_filepath = 'models/bi_lstm_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+        logs_filepath = 'logs/bi_lstm_semantic_model.log'
+        scores_filepath = 'scores/bi_lstm_semantic_model.txt'
+    else:
+        raise ValueError('Model type should be one of the following: lstm1, lstm2 or bi_lstm')
     data_X, data_y, n_classes = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
@@ -75,16 +91,39 @@ def lstm_sentiment_classification(split):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model('lstm2', n_classes, shape)
-    filepath = "models/lstm_semantic_model-{epoch:02d}-{val_loss:.2f}.h5"
-    checkpoint = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
+    model = create_model(model_type, n_classes, shape)
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
-    csv_logger = k.callbacks.CSVLogger('logs/lstm_semantic_model.log')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
     model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
-    np.savetxt('scores/lstm_semantic_model.txt', np.array(score))
+    np.savetxt(scores_filepath, np.array(score))
+
+
+def gru_sentiment_classification(split):
+    model_filepath = 'models/gru_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/gru_semantic_model.log'
+    scores_filepath = 'scores/gru_semantic_model.txt'
+    data_X, data_y, n_classes = load_data()
+    train_X = data_X[:split]
+    train_y = data_y[:split]
+    test_X = data_X[split:]
+    test_y = data_y[split:]
+    shape = train_X[0].shape
+    train_y = k.utils.to_categorical(train_y, n_classes)
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_model('gru', n_classes, shape)
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
+                                             save_weights_only=True, mode='min')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
+    model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
+    score = model.evaluate(test_X, test_y, batch_size=128)
+    np.savetxt(scores_filepath, np.array(score))
 
 
 if __name__ == '__main__':
     cnn_sentiment_classification(1280000)
-    lstm_sentiment_classification(1280000)
+    lstm_sentiment_classification(1280000, 'lstm1')
+    lstm_sentiment_classification(1280000, 'lstm2')
+    lstm_sentiment_classification(1280000, 'bi_lstm')
+    gru_sentiment_classification(1280000)

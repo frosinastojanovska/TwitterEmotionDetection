@@ -24,8 +24,12 @@ def create_model(model_type, num_classes, input_shape):
         model = lstm_model_1(num_classes, input_shape)
     elif model_type == 'lstm2':
         model = lstm_model_2(num_classes, input_shape)
+    elif model_type == 'bi_lstm':
+        model = bidirectional_lstm_model(num_classes, input_shape)
+    elif model_type == 'gru':
+        model = gru_model(num_classes, input_shape)
     else:
-        raise ValueError('Model type should be one of the following: cnn or lstm')
+        raise ValueError('Model type should be one of the following: cnn, lstm1, lstm2, bi_lstm or gru')
     opt = k.optimizers.Adam(amsgrad=True)
     model.compile(optimizer=opt,
                   loss='categorical_crossentropy',
@@ -42,7 +46,7 @@ def cnn_model(num_classes, input_shape):
     :type num_classes: int
     :param input_shape: shape of the input
     :type input_shape: tuple
-    :return: cnn model
+    :return: CNN model
     """
     model = k.Sequential()
 
@@ -67,7 +71,7 @@ def lstm_model_1(num_classes, input_shape):
     :type num_classes: int
     :param input_shape: shape of the input
     :type input_shape: tuple
-    :return: lstm model
+    :return: LSTM model
     """
     model = k.Sequential()
 
@@ -85,7 +89,7 @@ def lstm_model_2(num_classes, input_shape):
     :type num_classes: int
     :param input_shape: shape of the input
     :type input_shape: tuple
-    :return: lstm model
+    :return: LSTM model
     """
     model = k.Sequential()
 
@@ -93,6 +97,42 @@ def lstm_model_2(num_classes, input_shape):
     model.add(kl.Dense(128))
     model.add(kl.Dropout(0.2))
     model.add(kl.Activation('relu'))
+    model.add(kl.Dense(num_classes))
+    model.add(kl.Activation('sigmoid'))
+
+    return model
+
+
+def bidirectional_lstm_model(num_classes, input_shape):
+    """ Creates Bidirectional LSTM model for classification of emotions with word2vec embeddings
+
+    :param num_classes: number of classes
+    :type num_classes: int
+    :param input_shape: shape of the input
+    :type input_shape: tuple
+    :return: Bidirectional LSTM model
+    """
+    model = k.Sequential()
+
+    model.add(kl.Bidirectional(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2), input_shape=input_shape))
+    model.add(kl.Dense(num_classes))
+    model.add(kl.Activation('sigmoid'))
+
+    return model
+
+
+def gru_model(num_classes, input_shape):
+    """ Creates GRU model for classification of emotions with word2vec embeddings
+
+    :param num_classes: number of classes
+    :type num_classes: int
+    :param input_shape: shape of the input
+    :type input_shape: tuple
+    :return: GRU model
+    """
+    model = k.Sequential()
+
+    model.add(kl.GRU(128, dropout=0.2, recurrent_dropout=0.2, input_shape=input_shape))
     model.add(kl.Dense(num_classes))
     model.add(kl.Activation('sigmoid'))
 
