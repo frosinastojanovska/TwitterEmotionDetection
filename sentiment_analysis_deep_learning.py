@@ -38,6 +38,7 @@ def load_sentiment_data():
         df = split_tweet_sentences(df)
         df = tokenize_tweets(df)
         df = get_lemmas(df)
+        print('lexicon')
         df = get_lexcion_values(df)
         lexicon_features = pad_sequences(df.lexicon.values.tolist(), maxlen=150, dtype='float')
         np.save('data/text_sentiment_lexicon', lexicon_features)
@@ -122,8 +123,12 @@ def gru_sentiment_classification(split):
 
 
 if __name__ == '__main__':
-    cnn_sentiment_classification(1280000)
-    lstm_sentiment_classification(1280000, 'lstm1')
-    lstm_sentiment_classification(1280000, 'lstm2')
-    lstm_sentiment_classification(1280000, 'bi_lstm')
-    gru_sentiment_classification(1280000)
+    import time
+    start = time.time()
+    load_sentiment_data()
+    print(time.time() - start)
+    # cnn_sentiment_classification(1280000)
+    # lstm_sentiment_classification(1280000, 'lstm1')
+    # lstm_sentiment_classification(1280000, 'lstm2')
+    # lstm_sentiment_classification(1280000, 'bi_lstm')
+    # gru_sentiment_classification(1280000)

@@ -14,13 +14,10 @@ def pos_tagging(tweet):
     :rtype: list
     """
     dict_tags = {'ADJ': 'a', 'ADJ_SAT': 's', 'ADV': 'r', 'NOUN': 'n', 'VERB': 'v'}
-    tokens_tags = pos_tag(tweet)
-    for (i, (token, tag)) in zip(range(len(tokens_tags)), tokens_tags):
-        mapped = map_tag('en-ptb', 'universal', tag)
-        if mapped in dict_tags:
-            tokens_tags[i] = (token, dict_tags[mapped])
-        else:
-            tokens_tags[i] = (token, '')
+
+    tokens_tags = [(tokens[0], dict_tags[map_tag('en-ptb', 'universal', tokens[1])])
+                   if map_tag('en-ptb', 'universal', tokens[1]) in dict_tags
+                   else (tokens[0], '') for tokens in pos_tag(tweet)]
 
     return tokens_tags
 
@@ -34,30 +31,32 @@ def lemmatize(tweet):
     :return: list of tuples (word, lemma)
     :rtype: list
     """
-    tweet_list = []
     wordnet_lemmatizer = WordNetLemmatizer()
-    for token_tag in tweet:
-        word = token_tag[0]
-        pos_t = token_tag[1]
-
-        # word = re.sub(r'(.)\1{2,}', r'\1', word)
-
-        # remove users' tags
-        if word.startswith('@') and len(word) > 1:
-            word = '@user'
-            lemma = word
-        elif pos_t != '':
-            lemma = wordnet_lemmatizer.lemmatize(word, pos=pos_t)
-        else:
-            lemma = word
-
-        if word.startswith('#') and len(word) > 1:
-            lemma = wordnet_lemmatizer.lemmatize(word[1:])
-
-        word = word.replace(';', ' ')
-        lemma = lemma.replace(';', ' ')
-        tweet_list.append((word, lemma))
+    tweet_list = [correct_word_and_get_lemma(wordnet_lemmatizer, tag) for tag in tweet]
     return tweet_list
+
+
+def correct_word_and_get_lemma(wordnet_lemmatizer, token_tag):
+    word = token_tag[0]
+    pos_t = token_tag[1]
+
+    # word = re.sub(r'(.)\1{2,}', r'\1', word)
+
+    # remove users' tags
+    if word.startswith('@') and len(word) > 1:
+        word = '@user'
+        lemma = word
+    elif pos_t != '':
+        lemma = wordnet_lemmatizer.lemmatize(word, pos=pos_t)
+    else:
+        lemma = word
+
+    if word.startswith('#') and len(word) > 1:
+        lemma = wordnet_lemmatizer.lemmatize(word[1:])
+
+    word = word.replace(';', ' ')
+    lemma = lemma.replace(';', ' ')
+    return (word, lemma)
 
 
 if __name__ == '__main__':

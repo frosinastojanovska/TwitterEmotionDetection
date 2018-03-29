@@ -16,7 +16,7 @@ def split_tweet_sentences(df):
     :return: modified column tweet in the data frame
     :rtype: pandas.DataFrame
     """
-    df['tweet'] = [sent_tokenize(tweet) for tweet in df.tweet]
+    df['tweet'] = df.apply(lambda x: [sent_tokenize(x.tweet)][0], axis=1)
     return df
 
 
@@ -29,7 +29,7 @@ def tokenize_tweets(df):
     :rtype: pandas.DataFrame
     """
     tknzr = TweetTokenizer()
-    df['tokens'] = [[tknzr.tokenize(sent) for sent in text] for text in df.tweet]
+    df['tokens'] = df.apply(lambda x: [tknzr.tokenize(sent) for sent in x.tweet], axis=1)
     return df
 
 
@@ -41,7 +41,7 @@ def fix_encoding(df):
     :return: modified data frame tweet column with new fixed/encoded text
     :rtype: pandas.DataFrame
     """
-    df.tweet = [ftfy.fix_text(tweet) for tweet in df.tweet]
+    df.tweet = df.apply(lambda x: [ftfy.fix_text(x.tweet)][0], axis=1)
     return df
 
 
@@ -53,7 +53,7 @@ def fix_spelling(df):
         :return: modified data frame tweet column with new fixed/encoded text
         :rtype: pandas.DataFrame
         """
-    df.tweet = [str(TextBlob(re.sub(r'(.)\1{2,}', r'\1\1', tweet)).correct()) for tweet in df.tweet]
+    df.tweet = df.apply(lambda x: [str(TextBlob(re.sub(r'(.)\1{2,}', r'\1\1', x.tweet)).correct())][0], axis=1)
     return df
 
 
@@ -66,16 +66,8 @@ def get_lemmas(df):
     :return: modified data frame tokens column with added lemmas to the tokens in column lemmas
     :rtype: pandas.DataFrame
     """
-    df['lemmas'] = ''
-    for index, row in df.iterrows():
-        tokens_lemmas = []
-        for sent in row.tokens:
-            tags = pos_tagging(sent)
-            lemmas = lemmatize(tags)
-            tokens_lemmas.append([x[1] for x in lemmas])
-
-        df.set_value(index=index, col='lemmas', value=tokens_lemmas)
-
+    df['lemmas'] = df.apply(lambda x: [[lemma[1] for lemma in lemmatize(pos_tagging(sent))]
+                                       for sent in x.tokens], axis=1)
     return df
 
 
@@ -143,36 +135,33 @@ def encode_word(word, embeddings):
 def load_lexicon():
     """ Loads sentiment lexicon
 
-    :return: lexicon
-    :rtype: pandas.DataFrame
+    :return: None
     """
-    lexicon = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1, 2, 5, 8], index_col=0)
-    lexicon.columns = ['word', 'valence', 'arousal', 'dominance']
-    return lexicon
-
-
-def get_lexicon_value(lexicon, lemma):
-    if lemma in lexicon.word.values:
-        return [lexicon.loc[lexicon['word'] == lemma].valence.values[0],
-                lexicon.loc[lexicon['word'] == lemma].arousal.values[0],
-                lexicon.loc[lexicon['word'] == lemma].dominance.values[0]]
-    return [0, 0, 0]
+    lexicon_pandas = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1, 2, 5, 8], index_col=0)
+    lexicon_pandas.columns = ['word', 'valence', 'arousal', 'dominance']
+    keys = lexicon_pandas.word.values.tolist()
+    values = lexicon_pandas[['valence', 'arousal', 'dominance']].values.tolist()
+    global lexicon
+    lexicon = dict(zip(keys, values))
 
 
 def get_lexcion_values(df):
     """ Loads word lexicon values for the given dataset
 
-        :param df: dataset containing the lemmatized tweets
-        :type df: pandas.DataFrame
-        :return: data frame with corresponding lexcion values for ecah tweet
-        :rtype: pandas.DataFrame
-        """
-    lexicon = load_lexicon()
-    df['lexicon'] = ''
-    for index, row in df.iterrows():
-        values = [get_lexicon_value(lexicon, lemma) for sent in row.lemmas for lemma in sent]
-        df.set_value(index=index, col='lexicon', value=values)
+    :param df: dataset containing the lemmatized tweets
+    :type df: pandas.DataFrame
+    :return: data frame with corresponding lexcion values for ecah tweet
+    :rtype: pandas.DataFrame
+    """
+    load_lexicon()
+    df['lexicon'] = df.apply(get_lexicon_value_for_tweet, axis=1)
     return df
+
+
+def get_lexicon_value_for_tweet(row):
+    values = [lexicon[lemma] if lemma in lexicon.keys() else [0, 0, 0]
+              for sent in row.lemmas for lemma in sent]
+    return values
 
 
 if __name__ == '__main__':
