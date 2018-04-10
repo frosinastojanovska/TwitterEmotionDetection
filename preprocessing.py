@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import pandas as pd
 from lemmatization import lemmatize
 from lemmatization import pos_tagging
@@ -41,7 +42,7 @@ def fix_encoding(df):
     :return: modified data frame tweet column with new fixed/encoded text
     :rtype: pandas.DataFrame
     """
-    df.tweet = df.apply(lambda x: [ftfy.fix_text(x.tweet)][0], axis=1)
+    df.tweet = df.apply(lambda x: [ftfy.fix_text(re.sub(r'(.)\1{2,}', r'\1\1', x.tweet))][0], axis=1)
     return df
 
 
@@ -53,7 +54,7 @@ def fix_spelling(df):
         :return: modified data frame tweet column with new fixed/encoded text
         :rtype: pandas.DataFrame
         """
-    df.tweet = df.apply(lambda x: [str(TextBlob(re.sub(r'(.)\1{2,}', r'\1\1', x.tweet)).correct())][0], axis=1)
+    df.tweet = df.apply(lambda x: [str(TextBlob(x.tweet).correct())][0], axis=1)
     return df
 
 
@@ -85,6 +86,21 @@ def get_word_embeddings(df):
         embeddings = [encode_word(token, word_embeddings) for sent in row.tokens for token in sent]
         df.set_value(index=index, col='embeddings', value=embeddings)
     return df
+
+
+def get_word_encoding_and_embeddings(df):
+    """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word encodings.
+
+    :param df: data frame containing column tokens for tweet tokens
+    :type df: pandas.DataFrame
+    :return: modified data frame with new column for word encoding representation of tweets
+    :rtype: pandas.DataFrame
+    """
+    word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.100d.txt',
+                                                         embedding_dim=100, vocab_size=1193514)
+    df['encodings'] = df.apply(lambda x: [word2index[token] if token in word2index else 0
+                                          for sent in x.tokens for token in sent], axis=1)
+    return df, embedding_matrix
 
 
 def load_embeddings(file_name):
@@ -132,6 +148,39 @@ def encode_word(word, embeddings):
     return vec
 
 
+def load_glove_embeddings(file_path, embedding_dim, vocab_size):
+    """ Loads pre-trained word embeddings (GloVe embeddings)
+
+    :param file_path: file path of pre-trained glove embeddings
+    :type file_path: str
+    :param embedding_dim: dimension of each vector embedding
+    :type embedding_dim: int
+    :param vocab_size: vocabulary size
+    :type  vocab_size: int
+    :return: word to word-index, embedding matrix for Keras Embedding layer
+    :rtype: numpy.array
+    """
+    word2index = {}  # word to word-index
+    embedding_matrix = np.zeros((vocab_size + 1, embedding_dim))
+    idx = 1  # first row set to zero (for unknown words)
+
+    with open(file_path, 'r', encoding='utf-8') as doc:
+        line = doc.readline()
+        while line != '':
+            line = line.rstrip('\n').lower()
+            data = line.split(' ')
+            word = data[0]
+            coefs = np.asarray(data[1:embedding_dim+1], dtype='float32')
+            word2index[word] = idx
+            embedding_matrix[idx] = np.asarray(coefs)
+            idx += 1
+            if idx % 1000 == 0:
+                print(idx)
+            line = doc.readline()
+
+    return word2index, np.asarray(embedding_matrix)
+
+
 def load_lexicon():
     """ Loads sentiment lexicon
 
@@ -159,7 +208,8 @@ def get_lexcion_values(df):
 
 
 def get_lexicon_value_for_tweet(row):
-    values = [lexicon[lemma] if lemma in lexicon.keys() else [0, 0, 0]
+    values = [lexicon[str(Word(lemma).correct())] if str(Word(lemma).correct()) in lexicon.keys()
+              else [0, 0, 0]
               for sent in row.lemmas for lemma in sent]
     return values
 

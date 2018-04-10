@@ -5,27 +5,34 @@ import pandas as pd
 from keras.preprocessing.sequence import pad_sequences
 from deep_semantic_model import create_model
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
-    get_word_embeddings, get_lexcion_values, get_lemmas, fix_spelling
+    get_word_embeddings, get_word_encoding_and_embeddings, get_lexcion_values, \
+    get_lemmas, fix_spelling
 
 
 def load_data():
     df = pd.read_csv('data/sentiment.csv')
 
     if os.path.exists('data/text_sentiment_w2vec.npy'):
-        word_embed = np.load('data/text_sentiment_w2vec.npy')
+        word_encodings = np.load('data/text_sentiment_w2vec.npy')
+        embeddings_matrix = np.load('data/glove_embeddings_matrix.npy')
     else:
+        print('Fix encoding...')
         df = fix_encoding(df)
+        print('Split sentences...')
         df = split_tweet_sentences(df)
+        print('Tokenize tweets...')
         df = tokenize_tweets(df)
-        df = get_word_embeddings(df)
-        word_embed = pad_sequences(df.embeddings.values.tolist(), maxlen=150, dtype='float')
-        np.save('data/text_sentiment_w2vec', word_embed)
+        print('Encode tweets...')
+        df, embeddings_matrix = get_word_encoding_and_embeddings(df)
+        word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
+        np.save('data/text_sentiment_w2vec', word_encodings)
+        np.save('data/glove_embeddings_matrix', embeddings_matrix)
 
     df[df.sentiment == 4] = 1
     classes = df['sentiment'].values.tolist()
     c = np.unique(classes).tolist()
 
-    return word_embed, classes, len(c)
+    return word_encodings, classes, len(c), embeddings_matrix
 
 
 def load_sentiment_data():
@@ -34,7 +41,6 @@ def load_sentiment_data():
     else:
         df = pd.read_csv('data/sentiment.csv')
         df = fix_encoding(df)
-        df = fix_spelling(df)
         df = split_tweet_sentences(df)
         df = tokenize_tweets(df)
         df = get_lemmas(df)
@@ -49,7 +55,7 @@ def cnn_sentiment_classification(split):
     model_filepath = 'models/cnn_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
     logs_filepath = 'logs/cnn_semantic_model.log'
     scores_filepath = 'scores/cnn_semantic_model.txt'
-    data_X, data_y, n_classes = load_data()
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -57,7 +63,7 @@ def cnn_sentiment_classification(split):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model('cnn', n_classes, shape)
+    model = create_model('cnn', n_classes, shape, embeddings_matrix, 150)
     # checkpoint
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')

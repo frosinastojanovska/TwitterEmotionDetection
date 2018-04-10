@@ -33,7 +33,7 @@ def transfer_learning(split, model_type):
         model_weights = 'models/gru_semantic_model-192-1.11.h5'
     else:
         raise ValueError('Model type should be one of the following: cnn, lstm1, lstm2, bi_lstm or gru')
-    data_X, data_y, n_classes = load_data()
+    data_X, data_y, n_classes, embedding_matrix = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -41,7 +41,7 @@ def transfer_learning(split, model_type):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model(model_type, n_classes, shape)
+    model = create_model(model_type, n_classes, shape, embedding_matrix, 150)
     model.layers.pop()
     model.layers.pop()
     model.load_weights(model_weights, by_name=True)
