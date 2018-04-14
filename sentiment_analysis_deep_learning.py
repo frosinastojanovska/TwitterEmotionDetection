@@ -5,8 +5,7 @@ import pandas as pd
 from keras.preprocessing.sequence import pad_sequences
 from deep_semantic_model import create_model
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
-    get_word_embeddings, get_word_encoding_and_embeddings, get_lexcion_values, \
-    get_lemmas, fix_spelling
+    get_word_encoding_and_embeddings, get_lexcion_values, get_lemmas
 
 
 def load_data():
@@ -68,8 +67,7 @@ def cnn_sentiment_classification(split):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
-    # model.save_weights("models/cnn_semantic_model.h5")
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, callbacks=[checkpoint, csv_logger], validation_split=0.2)
 
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
@@ -90,7 +88,7 @@ def lstm_sentiment_classification(split, model_type):
         scores_filepath = 'scores/bi_lstm_semantic_model.txt'
     else:
         raise ValueError('Model type should be one of the following: lstm1, lstm2 or bi_lstm')
-    data_X, data_y, n_classes = load_data()
+    data_X, data_y, n_classes, embedding_matrix = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -98,11 +96,11 @@ def lstm_sentiment_classification(split, model_type):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model(model_type, n_classes, shape)
+    model = create_model(model_type, n_classes, shape, embedding_matrix, 150)
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
 
@@ -111,7 +109,7 @@ def gru_sentiment_classification(split):
     model_filepath = 'models/gru_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
     logs_filepath = 'logs/gru_semantic_model.log'
     scores_filepath = 'scores/gru_semantic_model.txt'
-    data_X, data_y, n_classes = load_data()
+    data_X, data_y, n_classes, embedding_matrix = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -119,22 +117,18 @@ def gru_sentiment_classification(split):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model('gru', n_classes, shape)
+    model = create_model('gru', n_classes, shape, embedding_matrix, 150)
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, callbacks=[checkpoint, csv_logger], validation_split=0.2)
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
 
 
 if __name__ == '__main__':
-    import time
-    start = time.time()
-    load_sentiment_data()
-    print(time.time() - start)
-    # cnn_sentiment_classification(1280000)
-    # lstm_sentiment_classification(1280000, 'lstm1')
-    # lstm_sentiment_classification(1280000, 'lstm2')
-    # lstm_sentiment_classification(1280000, 'bi_lstm')
-    # gru_sentiment_classification(1280000)
+    cnn_sentiment_classification(1280000)
+    lstm_sentiment_classification(1280000, 'lstm1')
+    lstm_sentiment_classification(1280000, 'lstm2')
+    lstm_sentiment_classification(1280000, 'bi_lstm')
+    gru_sentiment_classification(1280000)

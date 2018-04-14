@@ -34,7 +34,7 @@ def create_model(model_type, num_classes, input_shape, embedding_matrix=None, ma
         model = gru_model(num_classes, input_shape, embedding_matrix, max_length)
     else:
         raise ValueError('Model type should be one of the following: cnn, lstm1, lstm2, bi_lstm or gru')
-    opt = k.optimizers.Adam(lr=0.0001, decay=0.00001, amsgrad=True)
+    opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
     model.compile(optimizer=opt,
                   loss='categorical_crossentropy',
                   metrics=[k.metrics.categorical_accuracy,
