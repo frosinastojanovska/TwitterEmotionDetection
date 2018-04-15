@@ -184,17 +184,20 @@ def load_glove_embeddings(file_path, embedding_dim, vocab_size):
 def load_lexicon():
     """ Loads sentiment lexicon
 
-    :return: None
+    :return: word to word-index, lexicon matrix for Keras Embedding layer
+    :rtype: numpy.array
     """
     lexicon_pandas = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1, 2, 5, 8], index_col=0)
     lexicon_pandas.columns = ['word', 'valence', 'arousal', 'dominance']
     keys = lexicon_pandas.word.values.tolist()
-    values = lexicon_pandas[['valence', 'arousal', 'dominance']].values.tolist()
-    global lexicon
-    lexicon = dict(zip(keys, values))
+    indices = [x for x in range(len(keys)+1)]
+    values = [[0, 0, 0]] + lexicon_pandas[['valence', 'arousal', 'dominance']].values.tolist()
+    word2index = dict(zip(keys, indices[1:]))
+    lexicon = np.array(values)
+    return word2index, lexicon
 
 
-def get_lexcion_values(df):
+def get_lexicon_values(df):
     """ Loads word lexicon values for the given dataset
 
     :param df: dataset containing the lemmatized tweets
@@ -202,16 +205,10 @@ def get_lexcion_values(df):
     :return: data frame with corresponding lexcion values for ecah tweet
     :rtype: pandas.DataFrame
     """
-    load_lexicon()
-    df['lexicon'] = df.apply(get_lexicon_value_for_tweet, axis=1)
-    return df
-
-
-def get_lexicon_value_for_tweet(row):
-    values = [lexicon[str(Word(lemma).correct())] if str(Word(lemma).correct()) in lexicon.keys()
-              else [0, 0, 0]
-              for sent in row.lemmas for lemma in sent]
-    return values
+    word2index, lexicon_matrix = load_lexicon()
+    df['lexicon'] = df.apply(lambda x: [word2index[lemma] if lemma in word2index else 0
+                                        for sent in x.lemmas for lemma in sent], axis=1)
+    return df, lexicon_matrix
 
 
 if __name__ == '__main__':

@@ -3,9 +3,11 @@ import keras as k
 import numpy as np
 import pandas as pd
 from keras.preprocessing.sequence import pad_sequences
+
 from deep_semantic_model import create_model
+from deep_semantic_sentiment_model import create_merged_model
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
-    get_word_encoding_and_embeddings, get_lexcion_values, get_lemmas
+    get_word_encoding_and_embeddings, get_lexicon_values, get_lemmas
 
 
 def load_data():
@@ -37,17 +39,23 @@ def load_data():
 def load_sentiment_data():
     if os.path.exists('data/text_sentiment_lexicon.npy'):
         lexicon_features = np.load('data/text_sentiment_lexicon.npy')
+        lexicon_matrix = np.load('data/lexicon_matrix.npy')
     else:
         df = pd.read_csv('data/sentiment.csv')
+        print('Fix encoding...')
         df = fix_encoding(df)
+        print('Split sentences...')
         df = split_tweet_sentences(df)
+        print('Tokenize tweets...')
         df = tokenize_tweets(df)
+        print('Lematize tweets...')
         df = get_lemmas(df)
-        print('lexicon')
-        df = get_lexcion_values(df)
-        lexicon_features = pad_sequences(df.lexicon.values.tolist(), maxlen=150, dtype='float')
+        print('Lexicon encoding...')
+        df, lexicon_matrix = get_lexicon_values(df)
+        lexicon_features = pad_sequences(df.lexicon.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_sentiment_lexicon', lexicon_features)
-    return lexicon_features
+        np.save('data/lexicon_matrix', lexicon_matrix)
+    return lexicon_features, lexicon_matrix
 
 
 def cnn_sentiment_classification(split):
@@ -88,7 +96,7 @@ def lstm_sentiment_classification(split, model_type):
         scores_filepath = 'scores/bi_lstm_semantic_model.txt'
     else:
         raise ValueError('Model type should be one of the following: lstm1, lstm2 or bi_lstm')
-    data_X, data_y, n_classes, embedding_matrix = load_data()
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -96,7 +104,7 @@ def lstm_sentiment_classification(split, model_type):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_model(model_type, n_classes, shape, embedding_matrix, 150)
+    model = create_model(model_type, n_classes, shape, embeddings_matrix, 150)
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
@@ -126,9 +134,38 @@ def gru_sentiment_classification(split):
     np.savetxt(scores_filepath, np.array(score))
 
 
+def cnn_merged_sentiment_classification(split):
+    model_filepath = 'models/cnn_semantic_sentiment_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/cnn_semantic_sentiment_model.log'
+    scores_filepath = 'scores/cnn_semantic_sentiment_model.txt'
+    data2_X, lexicon_matrix = load_sentiment_data()
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
+    train_X = data_X[:split]
+    train_X2 = data2_X[:split]
+    train_y = data_y[:split]
+    test_X = data_X[split:]
+    test_X2 = data2_X[split:]
+    test_y = data_y[split:]
+    shape1 = train_X[0].shape
+    shape2 = train_X2[0].shape
+    train_y = k.utils.to_categorical(train_y, n_classes)
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_merged_model(n_classes, shape1, shape2, embeddings_matrix, lexicon_matrix, 150)
+    # checkpoint
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
+                                             save_weights_only=True, mode='min')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
+    model.fit([train_X, train_X2], train_y, epochs=200, batch_size=5000,
+              callbacks=[checkpoint, csv_logger], validation_split=0.2)
+
+    score = model.evaluate([test_X, test_X2], test_y, batch_size=128)
+    np.savetxt(scores_filepath, np.array(score))
+
+
 if __name__ == '__main__':
-    cnn_sentiment_classification(1280000)
-    lstm_sentiment_classification(1280000, 'lstm1')
-    lstm_sentiment_classification(1280000, 'lstm2')
-    lstm_sentiment_classification(1280000, 'bi_lstm')
-    gru_sentiment_classification(1280000)
+    cnn_merged_sentiment_classification(1280000)
+    # cnn_sentiment_classification(1280000)
+    # lstm_sentiment_classification(1280000, 'lstm1')
+    # lstm_sentiment_classification(1280000, 'lstm2')
+    # lstm_sentiment_classification(1280000, 'bi_lstm') # pred da se ukluchi ova da se namali batch size!!!!
+    # gru_sentiment_classification(1280000)
