@@ -5,7 +5,7 @@ from keras.layers.merge import concatenate
 
 def create_merged_model(num_classes, input_shape1, input_shape2, embedding_matrix=None,
                         lexicon_matrix=None, max_length=None):
-    """ Creates model of specified model type for classification of emotions with word2vec embeddings
+    """ Creates model of specified model type for classification of emotions with Glove and lexicon embeddings
 
     :param num_classes: number of classes
     :type num_classes: int
@@ -33,7 +33,7 @@ def create_merged_model(num_classes, input_shape1, input_shape2, embedding_matri
 
 
 def cnn_model(num_classes, input_shape1, input_shape2, embedding_matrix, lexicon_matrix, max_length):
-    """ Creates CNN model for classification of emotions with word2vec embeddings
+    """ Creates CNN model for classification of emotions with Glove and lexicon embeddings
 
     :param num_classes: number of classes
     :type num_classes: int

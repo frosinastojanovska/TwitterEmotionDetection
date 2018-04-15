@@ -1,8 +1,68 @@
-from deep_semantic_model import create_model
-from sentiment_analysis_deep_learning import load_data
+import os
 import keras as k
 import numpy as np
+import pandas as pd
 import keras.layers as kl
+from keras.preprocessing.sequence import pad_sequences
+
+from deep_semantic_model import create_model
+from sentiment_analysis_deep_learning import load_data
+from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
+    get_word_encoding_and_embeddings, get_lexicon_values, get_lemmas
+
+
+def load_data():
+    """ Loads tweets data for emotion classification
+
+    :return: list of word embeddings for each tweet, list of classes, number of classes, embeddings matrix
+    :rtype: (list(numpy.array), list(int), int, numpy.array)
+    """
+    df = pd.read_csv('data/text_emotion.csv')
+
+    if os.path.exists('data/text_emotion_w2vec.npy'):
+        word_encodings = np.load('data/text_emotion_w2vec.npy')
+        embeddings_matrix = np.load('data/glove_embeddings_matrix2.npy')
+    else:
+        print('Fix encoding...')
+        df = fix_encoding(df)
+        print('Split sentences...')
+        df = split_tweet_sentences(df)
+        print('Tokenize tweets...')
+        df = tokenize_tweets(df)
+        print('Encode tweets...')
+        df, embeddings_matrix = get_word_encoding_and_embeddings(df)
+        word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
+        np.save('data/text_emotion_w2vec', word_encodings)
+        np.save('data/glove_embeddings_matrix2', embeddings_matrix)
+
+    classes = df['sentiment'].values.tolist()
+    c = np.unique(classes).tolist()
+    d = dict([(y, x) for x, y in enumerate(c)])
+    classes = np.array([d[x] for x in classes])
+
+    return word_encodings, classes, len(c), embeddings_matrix
+
+
+def load_sentiment_data():
+    if os.path.exists('data/text_emotion_lexicon.npy'):
+        lexicon_features = np.load('data/text_emotion_lexicon.npy')
+        lexicon_matrix = np.load('data/lexicon_matrix2.npy')
+    else:
+        df = pd.read_csv('data/text_emotion.csv')
+        print('Fix encoding...')
+        df = fix_encoding(df)
+        print('Split sentences...')
+        df = split_tweet_sentences(df)
+        print('Tokenize tweets...')
+        df = tokenize_tweets(df)
+        print('Lematize tweets...')
+        df = get_lemmas(df)
+        print('Lexicon encoding...')
+        df, lexicon_matrix = get_lexicon_values(df)
+        lexicon_features = pad_sequences(df.lexicon.values.tolist(), maxlen=150, padding='post')
+        np.save('data/text_emotion_lexicon', lexicon_features)
+        np.save('data/lexicon_matrix2', lexicon_matrix)
+    return lexicon_features, lexicon_matrix
 
 
 def transfer_learning(split, model_type):
@@ -65,7 +125,7 @@ def transfer_learning(split, model_type):
 
 if __name__ == '__main__':
     transfer_learning(30000, 'cnn')
-    transfer_learning(30000, 'lstm1')
-    transfer_learning(30000, 'lstm2')
-    transfer_learning(30000, 'bi_lstm')
-    transfer_learning(30000, 'gru')
+    # transfer_learning(30000, 'lstm1')
+    # transfer_learning(30000, 'lstm2')
+    # transfer_learning(30000, 'bi_lstm')
+    # transfer_learning(30000, 'gru')
