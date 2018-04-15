@@ -2,7 +2,6 @@ import os
 import keras as k
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from keras.preprocessing.sequence import pad_sequences
 
 from deep_semantic_model import create_model
@@ -163,30 +162,10 @@ def cnn_merged_sentiment_classification(split):
     np.savetxt(scores_filepath, np.array(score))
 
 
-def visualize_train_history(file):
-    history = pd.read_csv(file, header=0)
-    plt.plot(history['categorical_accuracy'].values)
-    plt.plot(history['val_categorical_accuracy'].values)
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.show()
-    plt.plot(history['loss'].values)
-    plt.plot(history['val_loss'].values)
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.show()
-
-
 if __name__ == '__main__':
-    visualize_train_history('logs/cnn_semantic_model.log')
-    visualize_train_history('logs/cnn_semantic_sentiment_model.log')
     # cnn_merged_sentiment_classification(1280000)
     # cnn_sentiment_classification(1280000)
-    # lstm_sentiment_classification(1280000, 'lstm1')
+    lstm_sentiment_classification(1280000, 'lstm1')
     # lstm_sentiment_classification(1280000, 'lstm2')
     # lstm_sentiment_classification(1280000, 'bi_lstm') # pred da se ukluchi ova da se namali batch size!!!!
     # gru_sentiment_classification(1280000)
