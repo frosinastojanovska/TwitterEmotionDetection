@@ -46,6 +46,18 @@ def fix_encoding(df):
     return df
 
 
+def fix_negative_verbs(df):
+    """ Gets dataset of tweets text and fixes the vector tokens
+
+    :param df: data frame containing column tweet
+    :type df: pandas.DataFrame
+    :return: modified data frame tweet column with new fixed tokens
+    :rtype: pandas.DataFrame
+    """
+    df['tokens'] = df.apply(lambda x: [re.sub(r"'", r'', token) for sent in x.tokens for token in sent], axis=1)
+    return df
+
+
 def fix_spelling(df):
     """ Gets dataset of tweets text and fixes the spelling
 
@@ -98,7 +110,7 @@ def get_word_encoding_and_embeddings(df):
     """
     word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.100d.txt',
                                                          embedding_dim=100, vocab_size=1193514)
-    df['encodings'] = df.apply(lambda x: [word2index[token] if token in word2index else 0
+    df['encodings'] = df.apply(lambda x: [word2index[token.lower()] if token.lower() in word2index else 0
                                           for sent in x.tokens for token in sent], axis=1)
     return df, embedding_matrix
 
