@@ -7,7 +7,7 @@ from keras.preprocessing.sequence import pad_sequences
 from deep_semantic_model import create_model
 from deep_semantic_sentiment_model import create_merged_model
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
-    get_word_encoding_and_embeddings, get_lexicon_values, get_lemmas
+    get_word_encoding_and_embeddings, get_lexicon_values, get_lemmas, fix_negative_verbs
 
 
 def load_data():
@@ -23,6 +23,8 @@ def load_data():
         df = split_tweet_sentences(df)
         print('Tokenize tweets...')
         df = tokenize_tweets(df)
+        print('Fix negative verbs...')
+        df = fix_negative_verbs(df)
         print('Encode tweets...')
         df, embeddings_matrix = get_word_encoding_and_embeddings(df)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
@@ -94,6 +96,10 @@ def lstm_sentiment_classification(split, model_type):
         model_filepath = 'models/bi_lstm_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
         logs_filepath = 'logs/bi_lstm_semantic_model.log'
         scores_filepath = 'scores/bi_lstm_semantic_model.txt'
+    elif model_type == 'attention_lstm':
+        model_filepath = 'models/attention_lstm_semantic_model-{epoch:02d}-{val_loss:.2f}.h5'
+        logs_filepath = 'logs/attention_lstm_semantic_model.log'
+        scores_filepath = 'scores/attention_lstm_semantic_model.txt'
     else:
         raise ValueError('Model type should be one of the following: lstm1, lstm2 or bi_lstm')
     data_X, data_y, n_classes, embeddings_matrix = load_data()
@@ -108,7 +114,8 @@ def lstm_sentiment_classification(split, model_type):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000, callbacks=[checkpoint, csv_logger], validation_split=0.2)
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
+              callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
 
@@ -162,10 +169,27 @@ def cnn_merged_sentiment_classification(split):
     np.savetxt(scores_filepath, np.array(score))
 
 
+def test_semantic_model(model_type, weights_path, split):
+    data_X, data_y, n_classes, embedding_matrix = load_data()
+    test_X = data_X[split:]
+    test_y = data_y[split:]
+    shape = test_X[0].shape
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_model(model_type, n_classes, shape, embedding_matrix, 150)
+    model.load_weights(weights_path)
+    # predictions = model.predict(test_X, batch_size=1000)
+    # np.savetxt('predictions.txt', predictions)
+    score = model.evaluate(test_X, test_y, batch_size=128)
+    print(np.array(score))
+
+
 if __name__ == '__main__':
+    # load_data()
     # cnn_merged_sentiment_classification(1280000)
     # cnn_sentiment_classification(1280000)
     lstm_sentiment_classification(1280000, 'lstm1')
+    # test_semantic_model('lstm1', 'models/lstm1_semantic_model-46-0.66.h5', 1280000)
+    # lstm_sentiment_classification(1280000, 'attention_lstm')
     # lstm_sentiment_classification(1280000, 'lstm2')
     # lstm_sentiment_classification(1280000, 'bi_lstm') # pred da se ukluchi ova da se namali batch size!!!!
     # gru_sentiment_classification(1280000)
