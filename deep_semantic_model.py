@@ -20,15 +20,15 @@ def create_model(model_type, num_classes, input_shape, embedding_matrix=None, ma
     if model_type == 'cnn':
         model = cnn_model(num_classes, input_shape, embedding_matrix, max_length)
     elif model_type == 'lstm1':
-        model = lstm_model_1(num_classes, input_shape, embedding_matrix, max_length)
+        model = lstm_model(num_classes, input_shape, embedding_matrix, max_length)
     elif model_type == 'lstm2':
-        model = lstm_model_2(num_classes, input_shape, embedding_matrix, max_length)
+        model = cnn_lstm_model(num_classes, input_shape, embedding_matrix, max_length)
     elif model_type == 'bi_lstm':
-        model = bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max_length)
+        model = cnn_bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max_length)
     elif model_type == 'gru':
-        model = gru_model(num_classes, input_shape, embedding_matrix, max_length)
+        model = cnn_gru_model(num_classes, input_shape, embedding_matrix, max_length)
     elif model_type == 'attention_lstm':
-        model = attention_lstm(num_classes, input_shape, embedding_matrix, max_length)
+        model = cnn_attention_lstm(num_classes, input_shape, embedding_matrix, max_length)
     else:
         raise ValueError('Model type should be one of the following: cnn, lstm1, lstm2, bi_lstm or gru')
     opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
@@ -74,7 +74,7 @@ def cnn_model(num_classes, input_shape, embedding_matrix, max_length):
     return model
 
 
-def lstm_model_1(num_classes, input_shape, embedding_matrix, max_length):
+def lstm_model(num_classes, input_shape, embedding_matrix, max_length):
     """ Creates LSTM model for classification of emotions with Glove embeddings
 
     :param num_classes: number of classes
@@ -95,21 +95,18 @@ def lstm_model_1(num_classes, input_shape, embedding_matrix, max_length):
                            input_length=max_length,
                            trainable=False,
                            name='embedding_layer'))
-    model.add(kl.SpatialDropout1D(0.4))
-    model.add(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2,
-                      recurrent_regularizer=k.regularizers.L1L2(l1=0.01, l2=0.01)))
-    model.add(kl.Dense(num_classes, activation='sigmoid'))
-
-    # model.add(kl.LSTM(32,
-    #                   kernel_initializer='zeros',
-    #                   input_shape=input_shape, return_sequences=False))
-    # model.add(kl.Dense(num_classes))
-    # model.add(kl.Activation('sigmoid'))
+    model.add(kl.SpatialDropout1D(0.6))
+    model.add(kl.LSTM(32, dropout=0.1, recurrent_dropout=0.2))
+    model.add(kl.Dense(128))
+    model.add(kl.Dropout(0.2))
+    model.add(kl.Activation('relu'))
+    model.add(kl.Dense(num_classes))
+    model.add(kl.Activation('sigmoid'))
 
     return model
 
 
-def lstm_model_2(num_classes, input_shape, embedding_matrix, max_length):
+def cnn_lstm_model(num_classes, input_shape, embedding_matrix, max_length):
     """ Creates LSTM model for classification of emotions with Glove embeddings with additional hidden layer
 
     :param num_classes: number of classes
@@ -131,17 +128,18 @@ def lstm_model_2(num_classes, input_shape, embedding_matrix, max_length):
                            trainable=False,
                            name='embedding_layer'))
 
-    model.add(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=input_shape))
-    model.add(kl.Dense(128))
+    model.add(kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape))
+    model.add(kl.MaxPooling1D())
+    model.add(kl.Convolution1D(64, 3, activation='relu'))
+    model.add(kl.MaxPooling1D())
     model.add(kl.Dropout(0.2))
-    model.add(kl.Activation('relu'))
-    model.add(kl.Dense(num_classes))
-    model.add(kl.Activation('sigmoid'))
+    model.add(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2))
+    model.add(kl.Dense(num_classes, activation='sigmoid'))
 
     return model
 
 
-def bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max_length):
+def cnn_bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max_length):
     """ Creates Bidirectional LSTM model for classification of emotions with Glove embeddings
 
     :param num_classes: number of classes
@@ -162,15 +160,18 @@ def bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max_len
                            input_length=max_length,
                            trainable=False,
                            name='embedding_layer'))
-
-    model.add(kl.Bidirectional(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2), input_shape=input_shape))
-    model.add(kl.Dense(num_classes))
-    model.add(kl.Activation('sigmoid'))
+    model.add(kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape))
+    model.add(kl.MaxPooling1D())
+    model.add(kl.Convolution1D(64, 3, activation='relu'))
+    model.add(kl.MaxPooling1D())
+    model.add(kl.Dropout(0.2))
+    model.add(kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2)))
+    model.add(kl.Dense(num_classes, activation='sigmoid'))
 
     return model
 
 
-def gru_model(num_classes, input_shape, embedding_matrix, max_length):
+def cnn_gru_model(num_classes, input_shape, embedding_matrix, max_length):
     """ Creates GRU model for classification of emotions with Glove embeddings
 
     :param num_classes: number of classes
@@ -192,14 +193,18 @@ def gru_model(num_classes, input_shape, embedding_matrix, max_length):
                            trainable=False,
                            name='embedding_layer'))
 
-    model.add(kl.GRU(128, dropout=0.2, recurrent_dropout=0.2, input_shape=input_shape))
-    model.add(kl.Dense(num_classes))
-    model.add(kl.Activation('sigmoid'))
+    model.add(kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape))
+    model.add(kl.MaxPooling1D())
+    model.add(kl.Convolution1D(64, 3, activation='relu'))
+    model.add(kl.MaxPooling1D())
+    model.add(kl.Dropout(0.2))
+    model.add(kl.GRU(32, dropout=0.2, recurrent_dropout=0.2))
+    model.add(kl.Dense(num_classes, activation='sigmoid'))
 
     return model
 
 
-def attention_lstm(num_classes, input_shape, embedding_matrix, max_length):
+def cnn_attention_lstm(num_classes, input_shape, embedding_matrix, max_length):
     """ Creates LSTM model with attention layer for classification of emotions with Glove embeddings
 
     :param num_classes: number of classes
@@ -219,10 +224,16 @@ def attention_lstm(num_classes, input_shape, embedding_matrix, max_length):
                               input_length=max_length,
                               trainable=False,
                               name='embedding_layer')(inputs)
-    attention_mul = attention_3d_block(embeddings, max_length, True)
-    attention_mul = kl.LSTM(32, return_sequences=False)(attention_mul)
+    conv1 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape)(embeddings)
+    pool1 = kl.MaxPooling1D()(conv1)
+    conv2 = kl.Convolution1D(64, 3, activation='relu')(pool1)
+    pool2 = kl.MaxPooling1D()(conv2)
+    drop = kl.Dropout(0.2)(pool2)
+    attention_mul = attention_3d_block(drop, int(drop.shape[1]), True)
+    attention_mul = kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2)(attention_mul)
     output = kl.Dense(num_classes, activation='sigmoid')(attention_mul)
     model = k.Model(input=[inputs], output=output)
+
     return model
 
 
