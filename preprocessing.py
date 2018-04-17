@@ -218,7 +218,7 @@ def get_lexicon_values(df):
     :rtype: pandas.DataFrame
     """
     word2index, lexicon_matrix = load_lexicon()
-    df['lexicon'] = df.apply(lambda x: [word2index[lemma] if lemma in word2index else 0
+    df['lexicon'] = df.apply(lambda x: [word2index[lemma.lower()] if lemma.lower() in word2index else 0
                                         for sent in x.lemmas for lemma in sent], axis=1)
     return df, lexicon_matrix
 
