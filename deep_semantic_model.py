@@ -34,7 +34,7 @@ def create_model(model_type, num_classes, input_shape, embedding_matrix=None, ma
     opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
     model.compile(optimizer=opt,
                   loss='categorical_crossentropy',
-                  metrics=['accuracy'])
+                  metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
     return model
 
 
@@ -250,3 +250,7 @@ def attention_3d_block(inputs, time_steps, single_attention_vector=False):
     a_probs = kl.Permute((2, 1), name='attention_vec')(a)
     output_attention_mul = kl.multiply([inputs, a_probs], name='attention_mul')
     return output_attention_mul
+
+
+def top_3_accuracy(y_true, y_pred):
+    return k.metrics.top_k_categorical_accuracy(y_true, y_pred, k=3)

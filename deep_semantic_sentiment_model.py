@@ -26,9 +26,7 @@ def create_merged_model(num_classes, input_shape1, input_shape2, embedding_matri
 
     model.compile(optimizer=opt,
                   loss='categorical_crossentropy',
-                  metrics=[k.metrics.categorical_accuracy,
-                           k.metrics.mae,
-                           k.metrics.top_k_categorical_accuracy])
+                  metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
     return model
 
 
@@ -81,3 +79,7 @@ def cnn_model(num_classes, input_shape1, input_shape2, embedding_matrix, lexicon
     model = k.Model(inputs=[first_model, second_model], outputs=output)
 
     return model
+
+
+def top_3_accuracy(y_true, y_pred):
+    return k.metrics.top_k_categorical_accuracy(y_true, y_pred, k=3)
