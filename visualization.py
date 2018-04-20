@@ -25,4 +25,4 @@ if __name__ == '__main__':
     # visualize_train_history('logs/cnn_semantic_model.log')
     # visualize_train_history('logs/cnn_semantic_sentiment_model.log')
     # visualize_train_history('logs/lstm2_semantic_model.log')
-    visualize_train_history('logs/bi_lstm_semantic_model.log')
+    visualize_train_history('logs/emotion_cnn_bi_lstm_semantic_sentiment_model.log')

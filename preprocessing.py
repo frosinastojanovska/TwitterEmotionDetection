@@ -17,7 +17,7 @@ def split_tweet_sentences(df):
     :return: modified column tweet in the data frame
     :rtype: pandas.DataFrame
     """
-    df['tweet'] = df.apply(lambda x: [sent_tokenize(x.tweet)][0], axis=1)
+    df['tweet'] = df.apply(lambda x: [sent_tokenize(x.tweet.lower())][0], axis=1)
     return df
 
 
@@ -201,6 +201,7 @@ def load_lexicon():
     """
     lexicon_pandas = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1, 2, 5, 8], index_col=0)
     lexicon_pandas.columns = ['word', 'valence', 'arousal', 'dominance']
+    lexicon_pandas['valence'] = lexicon_pandas['valence'] - 4.5
     keys = lexicon_pandas.word.values.tolist()
     indices = [x for x in range(len(keys)+1)]
     values = [[0, 0, 0]] + lexicon_pandas[['valence', 'arousal', 'dominance']].values.tolist()
@@ -218,7 +219,7 @@ def get_lexicon_values(df):
     :rtype: pandas.DataFrame
     """
     word2index, lexicon_matrix = load_lexicon()
-    df['lexicon'] = df.apply(lambda x: [word2index[lemma.lower()] if lemma.lower() in word2index else 0
+    df['lexicon'] = df.apply(lambda x: [word2index[lemma] if lemma in word2index else 0
                                         for sent in x.lemmas for lemma in sent], axis=1)
     return df, lexicon_matrix
 

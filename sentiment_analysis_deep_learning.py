@@ -115,7 +115,7 @@ def lstm_sentiment_classification(split, model_type):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
+    model.fit(train_X, train_y, epochs=600, batch_size=5000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
@@ -190,9 +190,6 @@ if __name__ == '__main__':
     # load_data()
     # cnn_merged_sentiment_classification(1280000)
     # cnn_sentiment_classification(1280000)
-    lstm_sentiment_classification(1280000, 'lstm1')
-    # lstm_sentiment_classification(1280000, 'attention_lstm')
-    # lstm_sentiment_classification(1280000, 'lstm2')
     # lstm_sentiment_classification(1280000, 'bi_lstm')
     # gru_sentiment_classification(1280000)
-    # test_semantic_model('bi_lstm', 'models/bi_lstm_semantic_model-200-0.43.h5', 1280000, 'bi_lstm.txt')
+    test_semantic_model('lstm1', 'models/lstm1_semantic_model.h5', 1280000, 'lstm1.txt')
