@@ -247,6 +247,30 @@ def train_semantic_sentiment_models(split, model_type):
     np.savetxt(scores_filepath, np.array(score))
 
 
+def train_semantic_sentiment_merged_model(split, model_type):
+    model_filepath = 'models/emotion_merged_semantic_sentiment_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/emotion_merged_semantic_sentiment_model.log'
+    scores_filepath = 'scores/emotion_merged_semantic_sentiment_model.txt'
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
+    train_X = data_X[:split]
+    train_y = data_y[:split]
+    test_X = data_X[split:]
+    test_y = data_y[split:]
+    shape = train_X[0].shape
+    train_y = k.utils.to_categorical(train_y, n_classes)
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_merged_model(model_type, n_classes, shape, (0,), embeddings_matrix, max_length=150)
+    # checkpoint
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
+                                             save_weights_only=True, mode='min')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
+    model.fit([train_X, train_X], train_y, epochs=200, batch_size=5000, shuffle=True,
+              callbacks=[checkpoint, csv_logger], validation_split=0.2)
+
+    score = model.evaluate([test_X, test_X], test_y, batch_size=128)
+    np.savetxt(scores_filepath, np.array(score))
+
+
 def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
     data_X, data_y, n_classes, embeddings_matrix = load_data()
     data2_X, lexicon_matrix = load_sentiment_data()
@@ -263,12 +287,27 @@ def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
     np.savetxt(file_name, np.array(score))
 
 
+def test_semantic_sentiment_merged_model(weights_path, split, file_name):
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
+    test_X = data_X[split:]
+    test_y = data_y[split:]
+    shape = test_X[0].shape
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_merged_model('lexicon_cnn_bi_lstm', n_classes, shape, (0,), embeddings_matrix, max_length=150)
+    model.load_weights(weights_path)
+    score = model.evaluate([test_X, test_X], test_y, batch_size=128)
+    print(np.array(score))
+    np.savetxt(file_name, np.array(score))
+
+
 if __name__ == '__main__':
     # load_sentiment_data()
-    # train_models(30000, 'lstm1')
+    # train_semantic_models(30000, 'cnn')
     # transfer_learning(30000, 'lstm1')
-    # test_semantic_model('lstm1', 'models/emotion_lstm1_semantic_model.h5', 30000, 'emotion_lsmt1.txt', False)
+    # test_semantic_model('cnn', 'models/emotion_cnn_semantic_model.h5', 30000, 'emotion_cnn.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
-    train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
+    # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
     # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-39-2.16.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
+    # train_semantic_sentiment_merged_model(30000, 'lexicon_cnn_bi_lstm')
+    test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-70-1.97.h5', 30000, 'emotion_merged_lstm_sentiment.txt')
