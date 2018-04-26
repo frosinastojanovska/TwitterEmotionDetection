@@ -270,5 +270,5 @@ if __name__ == '__main__':
     # test_semantic_model('lstm1', 'models/emotion_lstm1_semantic_model.h5', 30000, 'emotion_lsmt1.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
-    # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
-    test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
+    train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
+    # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-39-2.16.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
