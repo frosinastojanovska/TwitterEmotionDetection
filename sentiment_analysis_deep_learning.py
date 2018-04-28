@@ -186,10 +186,35 @@ def test_semantic_model(model_type, weights_path, split, file_name):
     np.savetxt(file_name, np.array(score))
 
 
+def train_semantic_sentiment_merged_model(split, model_type):
+    model_filepath = 'models/sentiment_merged_semantic_sentiment_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/sentiment_merged_semantic_sentiment_model.log'
+    scores_filepath = 'scores/sentiment_merged_semantic_sentiment_model.txt'
+    data_X, data_y, n_classes, embeddings_matrix = load_data()
+    train_X = data_X[:split]
+    train_y = data_y[:split]
+    test_X = data_X[split:]
+    test_y = data_y[split:]
+    shape = train_X[0].shape
+    train_y = k.utils.to_categorical(train_y, n_classes)
+    test_y = k.utils.to_categorical(test_y, n_classes)
+    model = create_merged_model(model_type, n_classes, shape, (0,), embeddings_matrix, max_length=150)
+    # checkpoint
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
+                                             save_weights_only=True, mode='min')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
+              callbacks=[checkpoint, csv_logger], validation_split=0.2)
+
+    score = model.evaluate([test_X, test_X], test_y, batch_size=128)
+    np.savetxt(scores_filepath, np.array(score))
+
+
 if __name__ == '__main__':
     # load_data()
     # cnn_merged_sentiment_classification(1280000)
     # cnn_sentiment_classification(1280000)
     # lstm_sentiment_classification(1280000, 'bi_lstm')
     # gru_sentiment_classification(1280000)
-    test_semantic_model('lstm1', 'models/lstm1_semantic_model.h5', 1280000, 'lstm1.txt')
+    # test_semantic_model('lstm1', 'models/lstm1_semantic_model.h5', 1280000, 'lstm1.txt')
+    train_semantic_sentiment_merged_model(1280000, 'lexicon_cnn_bi_lstm')

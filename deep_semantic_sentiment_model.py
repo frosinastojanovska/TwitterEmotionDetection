@@ -123,7 +123,7 @@ def cnn_bi_lstm_model(num_classes, input_shape1, input_shape2, embedding_matrix,
                               output_dim=lexicon_matrix.shape[1],
                               weights=[lexicon_matrix],
                               input_length=max_length,
-                              trainable=True,
+                              trainable=False,
                               name='lexicon_embedding_layer')(second_model)
     conv21 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape2)(embedding2)
     pool21 = kl.MaxPooling1D()(conv21)
@@ -172,13 +172,13 @@ def lexicon_cnn_bi_lstm_model(num_classes, input_shape, embedding_matrix, max_le
     :type max_length: int
     :return: CNN+Bidirectional LSTM model
     """
-    first_model = k.Input(shape=input_shape)
+    input_layer = k.Input(shape=input_shape)
     embedding = kl.Embedding(input_dim=embedding_matrix.shape[0],
                              output_dim=embedding_matrix.shape[1],
                              weights=[embedding_matrix],
                              input_length=max_length,
                              trainable=False,
-                             name='embedding_layer')(first_model)
+                             name='embedding_layer')(input_layer)
     conv11 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape)(embedding)
     pool11 = kl.MaxPooling1D()(conv11)
     conv12 = kl.Convolution1D(64, 3, activation='relu')(pool11)
@@ -186,15 +186,7 @@ def lexicon_cnn_bi_lstm_model(num_classes, input_shape, embedding_matrix, max_le
     drop_out1 = kl.Dropout(0.2)(pool12)
     bi1 = kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2))(drop_out1)
 
-    second_model = k.Input(shape=input_shape)
-    embedding2 = kl.Embedding(input_dim=embedding_matrix.shape[0],
-                              output_dim=embedding_matrix.shape[1],
-                              weights=[embedding_matrix],
-                              input_length=max_length,
-                              trainable=False,
-                              name='embedding_layer2')(second_model)
-
-    layer0 = kl.TimeDistributed(kl.Dense(input_shape[0], name='sem2sent_input_layer'))(embedding2)
+    layer0 = kl.TimeDistributed(kl.Dense(input_shape[0], name='sem2sent_input_layer'))(embedding)
     activation0 = kl.TimeDistributed(kl.PReLU(name='sem2sent_activation0'))(layer0)
     layer1 = kl.TimeDistributed(kl.Dense(128, name='sem2sent_layer1'))(activation0)
     activation1 = kl.TimeDistributed(kl.PReLU(name='sem2sent_activation1'))(layer1)
@@ -207,13 +199,13 @@ def lexicon_cnn_bi_lstm_model(num_classes, input_shape, embedding_matrix, max_le
     pool21 = kl.MaxPooling1D()(conv21)
     conv22 = kl.Convolution1D(64, 3, activation='relu')(pool21)
     pool22 = kl.MaxPooling1D()(conv22)
-    drop_out2 = kl.Dropout(0.2)(pool22)
+    drop_out2 = kl.Dropout(0.2)(activation3)
     bi2 = kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2))(drop_out2)
 
     merge = concatenate([bi1, bi2])
     output = kl.Dense(num_classes, activation='sigmoid')(merge)
 
-    model = k.Model(inputs=[first_model, second_model], outputs=output)
+    model = k.Model(inputs=input_layer, outputs=output)
 
     return model
 
