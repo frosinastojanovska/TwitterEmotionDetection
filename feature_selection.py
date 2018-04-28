@@ -5,7 +5,7 @@ from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 
 
-def feature_selection(X, y, feature_names):
+def feature_selection(X, y, feature_names, thresh=0.0003):
     """ Feature selection
 
     Selects top features
@@ -15,6 +15,8 @@ def feature_selection(X, y, feature_names):
     :type y: numpy.array
     :param feature_names: names of the features
     :type feature_names: list
+    :param thresh: threshold for selecting features
+    :type thresh: float
     :return: selected features and the mask
     :rtype: (list, list)
 
@@ -23,7 +25,7 @@ def feature_selection(X, y, feature_names):
     clf = ExtraTreesClassifier()
     clf = clf.fit(X, y)
 
-    mask = clf.feature_importances_ > 0.0003
+    mask = clf.feature_importances_ > thresh
     selected = np.array(feature_names)[mask].tolist()
     print([(word, importance) for importance, word in
            sorted(zip(clf.feature_importances_[mask], selected), reverse=True)])

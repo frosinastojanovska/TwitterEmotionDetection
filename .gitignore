@@ -152,9 +152,11 @@ fabric.properties
 
 data/*
 data_final/*
+data_ml/*
 stanford_parser/*
 lexicons/*
 models/*
+models_ml/*
 logs/*
 scores/*
 
