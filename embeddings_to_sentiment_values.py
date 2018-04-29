@@ -10,7 +10,7 @@ from deep_semantic_sentiment_model import embedding_to_sentiment_model
 def train_embedding_to_sentiment():
     _, lexicon = load_lexicon()
 
-    if not os.path.exists('data/lexicon_words_indices.npy'):
+    if not os.path.exists('data/lexicon_words_embeddings.npy'):
         word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.100d.txt',
                                                              embedding_dim=100, vocab_size=1193514)
         lexicon_pandas = pd.read_csv('lexicons/Ratings_Warriner_et_al.csv', usecols=[0, 1], index_col=0)
@@ -18,9 +18,9 @@ def train_embedding_to_sentiment():
         X = np.array([embedding_matrix[0]] + [embedding_matrix[word2index[word]]
                                               if word in word2index else embedding_matrix[0]
                                               for word in lexicon_pandas.word.values.tolist()])
-        np.save('data/lexicon_words_indices', X)
+        np.save('data/lexicon_words_embeddings', X)
     else:
-        X = np.load('data/lexicon_words_indices.npy')
+        X = np.load('data/lexicon_words_embeddings.npy')
     y = lexicon
 
     model = embedding_to_sentiment_model(X[0].shape, y.shape[1])
