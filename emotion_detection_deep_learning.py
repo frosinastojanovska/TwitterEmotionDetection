@@ -32,6 +32,8 @@ def load_data():
         df = split_tweet_sentences(df)
         print('Tokenize tweets...')
         df = tokenize_tweets(df)
+        print('Fix negative verbs...')
+        df = fix_negative_verbs(df)
         print('Encode tweets...')
         df, embeddings_matrix = get_word_encoding_and_embeddings(df)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')

@@ -43,7 +43,7 @@ def fix_encoding(df):
     :rtype: pandas.DataFrame
     """
     df.tweet = df.apply(lambda x: [ftfy.fix_text(re.sub(r'(.)\1{2,}', r'\1\1', x.tweet))][0], axis=1)
-    df.tweet = df.apply(lambda x: [re.sub(r'http.* ', r'', x.tweet)][0], axis=1)
+    df.tweet = df.apply(lambda x: [re.sub(r'http\S+', r'', x.tweet)][0], axis=1)
     return df
 
 
