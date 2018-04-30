@@ -3,6 +3,7 @@ import keras as k
 import numpy as np
 import pandas as pd
 import keras.layers as kl
+from sklearn.preprocessing import normalize
 from keras.preprocessing.sequence import pad_sequences
 
 from deep_semantic_model import create_model, top_3_accuracy
@@ -134,7 +135,7 @@ def transfer_learning(split, model_type):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000,
+    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
@@ -168,6 +169,7 @@ def train_semantic_models(split, model_type):
     else:
         raise ValueError('Model type should be one of the following: cnn, lstm1, lstm2, bi_lstm, gru or attention_lstm')
     data_X, data_y, n_classes, embedding_matrix = load_data()
+    embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     train_X = data_X[:split]
     train_y = data_y[:split]
     test_X = data_X[split:]
@@ -187,6 +189,7 @@ def train_semantic_models(split, model_type):
 
 def test_semantic_model(model_type, weights_path, split, file_name, transfer=False):
     data_X, data_y, n_classes, embedding_matrix = load_data()
+    # embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     test_X = data_X[split:]
     test_y = data_y[split:]
     shape = test_X[0].shape
@@ -304,9 +307,9 @@ def test_semantic_sentiment_merged_model(weights_path, split, file_name):
 
 if __name__ == '__main__':
     # load_sentiment_data()
-    train_semantic_models(30000, 'cnn')
+    train_semantic_models(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
-    # test_semantic_model('cnn', 'models/emotion_cnn_semantic_model-80-2.20.h5', 30000, 'emotion_cnn.txt', False)
+    # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-50-2.07.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
     # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')

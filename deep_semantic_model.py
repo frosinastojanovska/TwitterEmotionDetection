@@ -161,11 +161,13 @@ def cnn_bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max
                            trainable=False,
                            name='embedding_layer'))
     model.add(kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape))
+    model.add(kl.BatchNormalization())
     model.add(kl.MaxPooling1D())
     model.add(kl.Convolution1D(64, 3, activation='relu'))
+    model.add(kl.BatchNormalization())
     model.add(kl.MaxPooling1D())
-    model.add(kl.Dropout(0.2))
-    model.add(kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2)))
+    model.add(kl.Dropout(0.1))
+    model.add(kl.Bidirectional(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2)))
     model.add(kl.Dense(num_classes, activation='sigmoid'))
 
     return model
