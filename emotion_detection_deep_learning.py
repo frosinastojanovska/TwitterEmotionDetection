@@ -7,7 +7,7 @@ from sklearn.preprocessing import normalize
 from keras.preprocessing.sequence import pad_sequences
 
 from deep_semantic_model import create_model, top_3_accuracy
-from deep_semantic_sentiment_model import create_merged_model
+from deep_semantic_sentiment_model import create_merged_model, embedding_to_sentiment_model
 from preprocessing import fix_encoding, split_tweet_sentences, tokenize_tweets, \
     get_word_encoding_and_embeddings, get_lexicon_values, get_lemmas, fix_negative_verbs
 
@@ -265,7 +265,11 @@ def train_semantic_sentiment_merged_model(split, model_type):
     shape = train_X[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_merged_model(model_type, n_classes, shape, (0,), embeddings_matrix, max_length=150)
+    pretrained_model = embedding_to_sentiment_model((1,), embeddings_matrix, 1, 1)
+    pretrained_model.load_weights('models/embedding_sentiment_model.h5')
+    embeddings_matrix = pretrained_model.layers[1].get_weights()[0]
+
+    model = create_model(model_type, n_classes, shape, embeddings_matrix, max_length=150)
     # checkpoint
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
@@ -309,12 +313,12 @@ def test_semantic_sentiment_merged_model(weights_path, split, file_name):
 
 if __name__ == '__main__':
     # load_sentiment_data()
-    # train_semantic_models(30000, 'lstm1')
+    # train_semantic_models(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
     # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
-    train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
-    # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-43-2.06.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
-    # train_semantic_sentiment_merged_model(30000, 'lexicon_cnn_bi_lstm')
+    # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
+    # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-42-2.03.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
+    train_semantic_sentiment_merged_model(30000, 'bi_lstm')
     # test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-70-1.97.h5', 30000, 'emotion_merged_lstm_sentiment.txt')

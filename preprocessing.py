@@ -195,7 +195,7 @@ def load_glove_embeddings(file_path, embedding_dim, vocab_size):
 
 
 def load_lexicon():
-    """ Loads sentiment lexicon
+    """ Loads sentiment lexicon Ratings_Warriner_et_al
 
     :return: word to word-index, lexicon matrix for Keras Embedding layer
     :rtype: numpy.array
@@ -211,15 +211,36 @@ def load_lexicon():
     return word2index, lexicon
 
 
-def get_lexicon_values(df):
+def load_sentiment_lexicon():
+    """ Loads sentiment lexicon TS-Lex
+
+    :return: word to word-index, lexicon matrix for Keras Embedding layer
+    :rtype: numpy.array
+    """
+    lexicon_pandas = pd.read_csv('lexicons/ts.lex.txt', sep=" ", names=['word', 'sentiment'])
+    keys = lexicon_pandas.word.values.tolist()
+    indices = [x for x in range(len(keys) + 1)]
+    values = [[0]] + lexicon_pandas[['sentiment']].values.tolist()
+    word2index = dict(zip(keys, indices[1:]))
+    lexicon = np.array(values)
+    return word2index, lexicon
+
+
+def get_lexicon_values(df, lexicon_type=0):
     """ Loads word lexicon values for the given dataset
 
     :param df: dataset containing the lemmatized tweets
     :type df: pandas.DataFrame
+    :param lexicon_type: type of the lexicon
+                        0 - Ratings_Warriner_et_al
+                        1 - TS-Lex lexicon
     :return: data frame with corresponding lexcion values for ecah tweet
     :rtype: pandas.DataFrame
     """
-    word2index, lexicon_matrix = load_lexicon()
+    if lexicon_type == 0:
+        word2index, lexicon_matrix = load_lexicon()
+    else:
+        word2index, lexicon_matrix = load_sentiment_lexicon()
     df['lexicon'] = df.apply(lambda x: [word2index[lemma] if lemma in word2index else 0
                                         for sent in x.lemmas for lemma in sent], axis=1)
     return df, lexicon_matrix
