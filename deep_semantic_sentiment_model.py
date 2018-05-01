@@ -121,13 +121,14 @@ def cnn_bi_lstm_model(num_classes, input_shape1, input_shape2, embedding_matrix,
                              input_length=max_length,
                              trainable=False,
                              name='embedding_layer')(first_model)
-    norm1 = kl.BatchNormalization()(embedding)
-    conv11 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape1)(norm1)
-    pool11 = kl.MaxPooling1D()(conv11)
+    conv11 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape1)(embedding)
+    norm11 = kl.BatchNormalization()(conv11)
+    pool11 = kl.MaxPooling1D()(norm11)
     conv12 = kl.Convolution1D(64, 3, activation='relu')(pool11)
-    pool12 = kl.MaxPooling1D()(conv12)
-    drop_out1 = kl.Dropout(0.2)(pool12)
-    bi1 = kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2))(drop_out1)
+    norm12 = kl.BatchNormalization()(conv12)
+    pool12 = kl.MaxPooling1D()(norm12)
+    drop_out1 = kl.Dropout(0.1)(pool12)
+    bi1 = kl.Bidirectional(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2))(drop_out1)
 
     second_model = k.Input(shape=input_shape2)
     embedding2 = kl.Embedding(input_dim=lexicon_matrix.shape[0],
@@ -136,15 +137,10 @@ def cnn_bi_lstm_model(num_classes, input_shape1, input_shape2, embedding_matrix,
                               input_length=max_length,
                               trainable=False,
                               name='lexicon_embedding_layer')(second_model)
-    norm2 = kl.BatchNormalization()(embedding2)
-    conv21 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape2)(norm2)
-    pool21 = kl.MaxPooling1D()(conv21)
-    conv22 = kl.Convolution1D(64, 3, activation='relu')(pool21)
-    pool22 = kl.MaxPooling1D()(conv22)
-    drop_out2 = kl.Dropout(0.2)(pool22)
-    bi2 = kl.Bidirectional(kl.LSTM(32, dropout=0.2, recurrent_dropout=0.2))(drop_out2)
+    norm21 = kl.BatchNormalization()(embedding2)
+    flatten = kl.Flatten()(norm21)
 
-    merge = concatenate([bi1, bi2])
+    merge = concatenate([bi1, flatten], axis=1)
     output = kl.Dense(num_classes, activation='sigmoid')(merge)
 
     model = k.Model(inputs=[first_model, second_model], outputs=output)
