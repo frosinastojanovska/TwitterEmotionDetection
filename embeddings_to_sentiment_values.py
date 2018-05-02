@@ -20,7 +20,7 @@ def train_embedding_to_sentiment():
         np.save('data/lexicon_words_indices', X)
     else:
         X = np.load('data/lexicon_words_indices.npy')
-        embedding_matrix = np.load('data/glove_embeddings_matrix2.npy')
+        embedding_matrix = np.load('data/embeddings_matrix2.npy')
     mask = [True] + (X[1:] > 0).tolist()
     y = lexicon[mask]
     X = X[mask]

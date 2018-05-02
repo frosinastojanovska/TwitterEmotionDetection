@@ -15,7 +15,7 @@ def load_data():
 
     if os.path.exists('data/text_sentiment_w2vec.npy'):
         word_encodings = np.load('data/text_sentiment_w2vec.npy')
-        embeddings_matrix = np.load('data/glove_embeddings_matrix.npy')
+        embeddings_matrix = np.load('data/embeddings_matrix.npy')
     else:
         print('Fix encoding...')
         df = fix_encoding(df)
@@ -29,7 +29,7 @@ def load_data():
         df, embeddings_matrix = get_word_encoding_and_embeddings(df, True)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_sentiment_w2vec', word_encodings)
-        np.save('data/glove_embeddings_matrix', embeddings_matrix)
+        np.save('data/embeddings_matrix', embeddings_matrix)
 
     df[df.sentiment == 4] = 1
     classes = df['sentiment'].values.tolist()

@@ -22,7 +22,7 @@ def load_data():
 
     if os.path.exists('data/text_emotion_w2vec.npy'):
         word_encodings = np.load('data/text_emotion_w2vec.npy')
-        embeddings_matrix = np.load('data/glove_embeddings_matrix2.npy')
+        embeddings_matrix = np.load('data/embeddings_matrix2.npy')
     else:
         col_names = df.columns.values
         col_names[len(col_names) - 1] = 'tweet'
@@ -39,7 +39,7 @@ def load_data():
         df, embeddings_matrix = get_word_encoding_and_embeddings(df, True)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_emotion_w2vec', word_encodings)
-        np.save('data/glove_embeddings_matrix2', embeddings_matrix)
+        np.save('data/embeddings_matrix2', embeddings_matrix)
 
     classes = df['sentiment'].values.tolist()
     c = np.unique(classes).tolist()

@@ -33,7 +33,7 @@ def load_data():
         word_encodings_train = np.load('data_multi_class/train_w2vec.npy')
         word_encodings_val = np.load('data_multi_class/val_w2vec.npy')
         word_encodings_test = np.load('data_multi_class/test_w2vec.npy')
-        embeddings_matrix = np.load('data_multi_class/glove_embeddings_matrix2.npy')
+        embeddings_matrix = np.load('data_multi_class/embeddings_matrix2.npy')
     else:
         for df in [df_train, df_val, df_test]:
             print('Fix encoding...')
@@ -56,7 +56,7 @@ def load_data():
         np.save('data_multi_class/train_w2vec', word_encodings_train)
         np.save('data_multi_class/val_w2vec', word_encodings_val)
         np.save('data_multi_class/test_w2vec', word_encodings_test)
-        np.save('data_multi_class/glove_embeddings_matrix2', embeddings_matrix)
+        np.save('data_multi_class/embeddings_matrix2', embeddings_matrix)
 
     classes = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'love', 'optimism',
                'pessimism', 'sadness', 'surprise', 'trust']
