@@ -93,7 +93,7 @@ def get_word_embeddings(df):
     :return: modified data frame with new column for embedding representation of tweets
     :rtype: pandas.DataFrame
     """
-    word_embeddings = load_embeddings('data/glove.twitter.27B.100d.txt')
+    word_embeddings = load_embeddings('data/glove.twitter.27B.200d.txt')
     df['embeddings'] = ''
     for index, row in df.iterrows():
         embeddings = [encode_word(token, word_embeddings) for sent in row.tokens for token in sent]
@@ -109,8 +109,8 @@ def get_word_encoding_and_embeddings(df):
     :return: modified data frame with new column for word encoding representation of tweets
     :rtype: pandas.DataFrame
     """
-    word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.100d.txt',
-                                                         embedding_dim=100, vocab_size=1193514)
+    word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
+                                                         embedding_dim=200, vocab_size=1193514)
     df['encodings'] = df.apply(lambda x: [word2index[token.lower()] if token.lower() in word2index else 0
                                           for sent in x.tokens for token in sent], axis=1)
     return df, embedding_matrix
@@ -157,7 +157,7 @@ def encode_word(word, embeddings):
         if w in embeddings.keys():
             vec = embeddings[w]
         else:
-            vec = [0] * 100
+            vec = [0] * 200
     return vec
 
 
