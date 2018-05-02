@@ -153,6 +153,7 @@ fabric.properties
 data/*
 data_final/*
 data_ml/*
+data_multi_class/*
 stanford_parser/*
 lexicons/*
 models/*
