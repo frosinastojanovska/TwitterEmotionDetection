@@ -3,8 +3,8 @@ from gensim.models import KeyedVectors
 
 
 def original_glove_embeddings():
-    glove_file = 'data/glove.twitter.27B.100d.txt'
-    word2vec_file = 'data/glove.twitter.27B.100d.txt.word2vec'
+    glove_file = 'data/glove.twitter.27B.200d.txt'
+    word2vec_file = 'data/glove.twitter.27B.200d.txt.word2vec'
     if not os.path.exists(word2vec_file):
         from gensim.scripts.glove2word2vec import glove2word2vec
         glove2word2vec(glove_file, word2vec_file)
@@ -15,7 +15,7 @@ def original_glove_embeddings():
     # print(model.most_similar(positive=['angry'], negative=[], topn=10))
     # print(model.most_similar(positive=['joy'], negative=[], topn=10))
     print(model.most_similar(positive=['joy', 'trust'], negative=[], topn=10))
-    print(model.most_similar(positive=['joy', 'fear'], negative=[], topn=10))
+    # print(model.most_similar(positive=['joy', 'fear'], negative=[], topn=10))
     print(model.most_similar(positive=['anger', 'joy'], negative=[], topn=10))
 
 

@@ -101,16 +101,25 @@ def get_word_embeddings(df):
     return df
 
 
-def get_word_encoding_and_embeddings(df):
+def get_word_encoding_and_embeddings(df, include_emojis=False):
     """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word encodings.
 
     :param df: data frame containing column tokens for tweet tokens
     :type df: pandas.DataFrame
+    :param include_emojis: flag to include emojis
+    :type include_emojis: bool
     :return: modified data frame with new column for word encoding representation of tweets
     :rtype: pandas.DataFrame
     """
-    word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
-                                                         embedding_dim=200, vocab_size=1193514)
+    if include_emojis:
+        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
+                                                             embedding_dim=200, vocab_size=1193514,
+                                                             emoji2vec=True, emoji2vec_path='data/emoji2vec-200d.txt',
+                                                             num_emojis=1661)
+    else:
+        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
+                                                             embedding_dim=200, vocab_size=1193514,
+                                                             emoji2vec=False)
     df['encodings'] = df.apply(lambda x: [word2index[token.lower()] if token.lower() in word2index else 0
                                           for sent in x.tokens for token in sent], axis=1)
     return df, embedding_matrix
@@ -161,7 +170,7 @@ def encode_word(word, embeddings):
     return vec
 
 
-def load_glove_embeddings(file_path, embedding_dim, vocab_size):
+def load_glove_embeddings(file_path, embedding_dim, vocab_size, emoji2vec=False, emoji2vec_path=None, num_emojis=0):
     """ Loads pre-trained word embeddings (GloVe embeddings)
 
     :param file_path: file path of pre-trained glove embeddings
@@ -170,11 +179,17 @@ def load_glove_embeddings(file_path, embedding_dim, vocab_size):
     :type embedding_dim: int
     :param vocab_size: vocabulary size
     :type  vocab_size: int
+    :param emoji2vec: flag to include emoji to glove embeddings
+    :type emoji2vec: bool
+    :param emoji2vec_path: file path of pre-trained glove emoji embeddings
+    :type emoji2vec_path: str
+    :param num_emojis: number of emojis
+    :type  num_emojis: int
     :return: word to word-index, embedding matrix for Keras Embedding layer
     :rtype: numpy.array
     """
     word2index = {}  # word to word-index
-    embedding_matrix = np.zeros((vocab_size + 1, embedding_dim))
+    embedding_matrix = np.zeros((vocab_size + 1 + num_emojis, embedding_dim))
     idx = 1  # first row set to zero (for unknown words)
 
     with open(file_path, 'r', encoding='utf-8') as doc:
@@ -190,6 +205,20 @@ def load_glove_embeddings(file_path, embedding_dim, vocab_size):
             if idx % 1000 == 0:
                 print(idx)
             line = doc.readline()
+
+    if emoji2vec:
+        with open(emoji2vec_path, 'r', encoding='utf-8') as doc:
+            line = doc.readline()
+            line = doc.readline()
+            while line != '':
+                line = line.rstrip('\n').lower()
+                data = line.split(' ')
+                word = data[0]
+                coefs = np.asarray(data[1:embedding_dim + 1], dtype='float32')
+                word2index[word] = idx
+                embedding_matrix[idx] = np.asarray(coefs)
+                idx += 1
+                line = doc.readline()
 
     return word2index, np.asarray(embedding_matrix)
 
