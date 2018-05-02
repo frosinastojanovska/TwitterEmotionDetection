@@ -111,14 +111,17 @@ def get_word_encoding_and_embeddings(df, include_emojis=False):
     :return: modified data frame with new column for word encoding representation of tweets
     :rtype: pandas.DataFrame
     """
+    # glove_file = 'data/glove.twitter.27B.200d.txt', dim=200, vocab_size=1193514
+    # w2vec_file = 'data/w2v.twitter.edinburgh10M.400d.txt', dim=400, vocab_size=258917
+
     if include_emojis:
-        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
-                                                             embedding_dim=200, vocab_size=1193514,
+        word2index, embedding_matrix = load_glove_embeddings('data/w2v.twitter.edinburgh10M.400d.txt',
+                                                             embedding_dim=400, vocab_size=258917,
                                                              emoji2vec=True, emoji2vec_path='data/emoji2vec-200d.txt',
                                                              num_emojis=1661)
     else:
-        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
-                                                             embedding_dim=200, vocab_size=1193514,
+        word2index, embedding_matrix = load_glove_embeddings('data/w2v.twitter.edinburgh10M.400d.txt',
+                                                             embedding_dim=400, vocab_size=258917,
                                                              emoji2vec=False)
     df['encodings'] = df.apply(lambda x: [word2index[token.lower()] if token.lower() in word2index else 0
                                           for sent in x.tokens for token in sent], axis=1)

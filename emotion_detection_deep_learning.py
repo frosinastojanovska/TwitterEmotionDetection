@@ -36,7 +36,7 @@ def load_data():
         print('Fix negative verbs...')
         df = fix_negative_verbs(df)
         print('Encode tweets...')
-        df, embeddings_matrix = get_word_encoding_and_embeddings(df)
+        df, embeddings_matrix = get_word_encoding_and_embeddings(df, True)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_emotion_w2vec', word_encodings)
         np.save('data/glove_embeddings_matrix2', embeddings_matrix)
@@ -119,7 +119,7 @@ def transfer_learning(split, model_type):
     model.layers.pop()
     if model_type == 'cnn' or model_type == 'lstm1':
         model.layers.pop()
-    model.load_weights(model_weights, by_name=True)
+    model.load_weights(model_weights)
     if model_type == 'attention_lstm':
         inputs = model.inputs
         x = model.layers[-1].output
@@ -135,7 +135,7 @@ def transfer_learning(split, model_type):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
+    model.fit(train_X, train_y, epochs=200, batch_size=1000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
@@ -181,7 +181,7 @@ def train_semantic_models(split, model_type):
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
+    model.fit(train_X, train_y, epochs=200, batch_size=1000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.2)
     score = model.evaluate(test_X, test_y, batch_size=128)
     np.savetxt(scores_filepath, np.array(score))
@@ -313,12 +313,12 @@ def test_semantic_sentiment_merged_model(weights_path, split, file_name):
 
 if __name__ == '__main__':
     # load_sentiment_data()
-    # train_semantic_models(30000, 'bi_lstm')
+    train_semantic_models(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
     # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
     # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
     # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-42-2.03.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
-    train_semantic_sentiment_merged_model(30000, 'bi_lstm')
+    # train_semantic_sentiment_merged_model(30000, 'bi_lstm')
     # test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-70-1.97.h5', 30000, 'emotion_merged_lstm_sentiment.txt')

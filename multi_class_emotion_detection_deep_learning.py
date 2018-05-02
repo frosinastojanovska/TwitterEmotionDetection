@@ -45,13 +45,13 @@ def load_data():
             print('Fix negative verbs...')
             df = fix_negative_verbs(df)
         print('Encode tweets...')
-        df_train, embeddings_matrix = get_word_encoding_and_embeddings(df_train, True)
+        df_train, embeddings_matrix = get_word_encoding_and_embeddings(df_train, False)
         word_encodings_train = pad_sequences(df_train.encodings.values.tolist(), maxlen=150, padding='post')
         print('Encode tweets...')
-        df_val, embeddings_matrix = get_word_encoding_and_embeddings(df_val, True)
+        df_val, embeddings_matrix = get_word_encoding_and_embeddings(df_val, False)
         word_encodings_val = pad_sequences(df_val.encodings.values.tolist(), maxlen=150, padding='post')
         print('Encode tweets...')
-        df_test, embeddings_matrix = get_word_encoding_and_embeddings(df_test, True)
+        df_test, embeddings_matrix = get_word_encoding_and_embeddings(df_test, False)
         word_encodings_test = pad_sequences(df_test.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data_multi_class/train_w2vec', word_encodings_train)
         np.save('data_multi_class/val_w2vec', word_encodings_val)
@@ -116,6 +116,8 @@ def train_semantic_models():
     logs_filepath = 'logs/multi_emotion_semantic_model.log'
 
     train_X, train_y, val_X, val_y, _, _, embedding_matrix = load_data()
+    train_X = np.vstack((train_X, val_X))
+    train_y = np.vstack((train_y, val_y))
     embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     shape = train_X[0].shape
 
@@ -128,8 +130,8 @@ def train_semantic_models():
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
-              callbacks=[checkpoint, csv_logger], validation_data=[val_X, val_y])
+    model.fit(train_X, train_y, epochs=200, batch_size=500, shuffle=True,
+              callbacks=[checkpoint, csv_logger], validation_split=0.15)
 
 
 def transfer_learning_semantic_model():
@@ -137,12 +139,14 @@ def transfer_learning_semantic_model():
     logs_filepath = 'logs/multi_emotion_semantic_model_transfer.log'
     model_weights = 'models/emotion_bi_lstm_semantic_model-100d.h5'
     train_X, train_y, val_X, val_y, _, _, embedding_matrix = load_data()
+    train_X = np.vstack((train_X, val_X))
+    train_y = np.vstack((train_y, val_y))
     embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     shape = train_X[0].shape
 
     model = cnn_bidirectional_lstm_model(train_y.shape[1], shape, embedding_matrix, 150)
     model.layers.pop()
-    model.load_weights(model_weights, by_name=True)
+    model.load_weights(model_weights)
     model.add(kl.Dense(train_y.shape[1], activation='sigmoid'))
 
     opt = k.optimizers.Adam(lr=0.01, amsgrad=True)
@@ -154,7 +158,7 @@ def transfer_learning_semantic_model():
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
     model.fit(train_X, train_y, epochs=250, batch_size=5000, shuffle=True,
-              callbacks=[checkpoint, csv_logger], validation_data=[val_X, val_y])
+              callbacks=[checkpoint, csv_logger], validation_split=0.15)
 
 
 def train_semantic_sentiment_models():
@@ -162,10 +166,13 @@ def train_semantic_sentiment_models():
     logs_filepath = 'logs/multi_emotion_semantic_sentiment_model.log'
 
     train_X, train_y, val_X, val_y, _, _, embedding_matrix = load_data()
+    train_X = np.vstack((train_X, val_X))
+    train_y = np.vstack((train_y, val_y))
     embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     shape1 = train_X[0].shape
 
     train_X2, val_X2, _, lexicon_matrix = load_sentiment_data()
+    train_X2 = np.vstack((train_X2, val_X2))
     shape2 = train_X2[0].shape
 
     model = cnn_bi_lstm_model(train_y.shape[1], shape1, shape2, embedding_matrix, lexicon_matrix, 150)
@@ -180,7 +187,7 @@ def train_semantic_sentiment_models():
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
     model.fit([train_X, train_X2], train_y, epochs=200, batch_size=5000, shuffle=True,
-              callbacks=[checkpoint, csv_logger], validation_data=[[val_X, val_X2], val_y])
+              callbacks=[checkpoint, csv_logger], validation_split=0.15)
 
 
 def train_semantic_sentiment_merged_model():
@@ -188,6 +195,8 @@ def train_semantic_sentiment_merged_model():
     logs_filepath = 'logs/multi_emotion_sentiment_semantic_merged_model.log'
 
     train_X, train_y, val_X, val_y, _, _, embedding_matrix = load_data()
+    train_X = np.vstack((train_X, val_X))
+    train_y = np.vstack((train_y, val_y))
     embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
     shape = train_X[0].shape
 
@@ -206,7 +215,7 @@ def train_semantic_sentiment_merged_model():
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
     model.fit(train_X, train_y, epochs=200, batch_size=5000, shuffle=True,
-              callbacks=[checkpoint, csv_logger], validation_split=0.2)
+              callbacks=[checkpoint, csv_logger], validation_split=0.15)
 
 
 def test_semantic_model(weights_path, file_path, transfer=False):
@@ -217,15 +226,14 @@ def test_semantic_model(weights_path, file_path, transfer=False):
     model = cnn_bidirectional_lstm_model(test_y.shape[1], shape, embedding_matrix, 150)
     if transfer:
         model.layers.pop()
-        model.load_weights(weights_path, by_name=True)
+        model.load_weights(weights_path)
         model.add(kl.Dense(test_y.shape[1], activation='sigmoid'))
     else:
-        model.load_weights(weights_path, by_name=True)
+        model.load_weights(weights_path)
     opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
     model.compile(optimizer=opt,
                   loss='binary_crossentropy')
 
-    model.load_weights(weights_path)
     preds = model.predict(test_X, verbose=True)
     preds[preds >= 0.5] = 1
     preds[preds < 0.5] = 0
@@ -273,7 +281,7 @@ def test_semantic_sentiment_model(weights_path, file_name):
 if __name__ == '__main__':
     # load_data()
     train_semantic_models()
-    # test_semantic_model('models/multi_emotion_semantic_model.h5', 'scores/multi_emotion_semantic_model.txt')
+    # test_semantic_model('models/multi_emotion_semantic_model-09-0.44.h5', 'scores/multi_emotion_semantic_model.txt')
     # transfer_learning_semantic_model()
     # test_semantic_model('models/multi_emotion_semantic_model_transfer.h5',
     #                     'scores/multi_emotion_semantic_model_transfer.txt', True)
