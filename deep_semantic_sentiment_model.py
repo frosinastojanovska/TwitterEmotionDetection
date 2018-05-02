@@ -133,11 +133,18 @@ def cnn_bi_lstm_model(num_classes, input_shape1, input_shape2, embedding_matrix,
                               input_length=max_length,
                               trainable=False,
                               name='lexicon_embedding_layer')(second_model)
-    norm21 = kl.BatchNormalization()(embedding2)
-    flatten = kl.Flatten()(norm21)
+    conv21 = kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape1)(embedding2)
+    norm21 = kl.BatchNormalization()(conv21)
+    pool21 = kl.MaxPooling1D()(norm21)
+    conv22 = kl.Convolution1D(64, 3, activation='relu')(pool21)
+    norm22 = kl.BatchNormalization()(conv22)
+    pool22 = kl.MaxPooling1D()(norm22)
+    drop_out2 = kl.Dropout(0.1)(pool22)
+    bi2 = kl.Bidirectional(kl.LSTM(128, dropout=0.2, recurrent_dropout=0.2))(drop_out2)
 
-    merge = concatenate([bi1, flatten], axis=1)
-    output = kl.Dense(num_classes, activation='sigmoid')(merge)
+    merge = concatenate([bi1, bi2], axis=1)
+    drop_final = kl.Dropout(0.1)(merge)
+    output = kl.Dense(num_classes, activation='sigmoid')(drop_final)
 
     model = k.Model(inputs=[first_model, second_model], outputs=output)
 
