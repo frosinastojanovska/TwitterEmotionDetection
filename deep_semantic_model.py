@@ -158,8 +158,7 @@ def cnn_bidirectional_lstm_model(num_classes, input_shape, embedding_matrix, max
                            output_dim=embedding_matrix.shape[1],
                            weights=[embedding_matrix],
                            input_length=max_length,
-                           trainable=False,
-                           name='embedding_layer'))
+                           trainable=False))
     model.add(kl.Convolution1D(32, 3, activation='relu', input_shape=input_shape))
     model.add(kl.BatchNormalization())
     model.add(kl.MaxPooling1D())
