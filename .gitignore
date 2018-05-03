@@ -160,7 +160,7 @@ models/*
 models_ml/*
 logs/*
 scores/*
+results/*
 
 # Word2vec trained model
-glove.twitter.27B.200d.txt
 glove.twitter.27B.zip

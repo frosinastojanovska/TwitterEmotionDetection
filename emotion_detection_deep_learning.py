@@ -5,6 +5,7 @@ import pandas as pd
 import keras.layers as kl
 from sklearn.preprocessing import normalize
 from keras.preprocessing.sequence import pad_sequences
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 from deep_semantic_model import create_model, top_3_accuracy
 from deep_semantic_sentiment_model import create_merged_model, embedding_to_sentiment_model
@@ -36,7 +37,7 @@ def load_data():
         print('Fix negative verbs...')
         df = fix_negative_verbs(df)
         print('Encode tweets...')
-        df, embeddings_matrix = get_word_encoding_and_embeddings(df, True)
+        df, embeddings_matrix = get_word_encoding_and_embeddings(df, False)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_emotion_w2vec', word_encodings)
         np.save('data/embeddings_matrix2', embeddings_matrix)
@@ -212,8 +213,19 @@ def test_semantic_model(model_type, weights_path, split, file_name, transfer=Fal
                       loss='categorical_crossentropy',
                       metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
     model.load_weights(weights_path)
-    score = model.evaluate(test_X, test_y, batch_size=128)
-    print(np.array(score))
+    prob_y = model.predict(test_X)
+    pred_y = np.zeros_like(prob_y)
+    pred_y[np.arange(len(prob_y)), prob_y.argmax(axis=-1)] = 1
+    score = [accuracy_score(test_y, pred_y),
+             accuracy_top_n(test_y, prob_y, n=3),
+             accuracy_top_n(test_y, prob_y, n=5),
+             precision_score(test_y, pred_y, average='micro'),
+             recall_score(test_y, pred_y, average='micro'),
+             f1_score(test_y, pred_y, average='micro'),
+             precision_score(test_y, pred_y, average='macro'),
+             recall_score(test_y, pred_y, average='macro'),
+             f1_score(test_y, pred_y, average='macro')]
+    print(score)
     np.savetxt(file_name, np.array(score))
 
 
@@ -293,8 +305,19 @@ def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
     test_y = k.utils.to_categorical(test_y, n_classes)
     model = create_merged_model(model_type, n_classes, shape1, shape2, embeddings_matrix, lexicon_matrix, 150)
     model.load_weights(weights_path)
-    score = model.evaluate([test_X, test_X2], test_y, batch_size=128)
-    print(np.array(score))
+    prob_y = model.predict(test_X)
+    pred_y = np.zeros_like(prob_y)
+    pred_y[np.arange(len(prob_y)), prob_y.argmax(axis=-1)] = 1
+    score = [accuracy_score(test_y, pred_y),
+             accuracy_top_n(test_y, prob_y, n=3),
+             accuracy_top_n(test_y, prob_y, n=5),
+             precision_score(test_y, pred_y, average='micro'),
+             recall_score(test_y, pred_y, average='micro'),
+             f1_score(test_y, pred_y, average='micro'),
+             precision_score(test_y, pred_y, average='macro'),
+             recall_score(test_y, pred_y, average='macro'),
+             f1_score(test_y, pred_y, average='macro')]
+    print(score)
     np.savetxt(file_name, np.array(score))
 
 
@@ -306,19 +329,35 @@ def test_semantic_sentiment_merged_model(weights_path, split, file_name):
     test_y = k.utils.to_categorical(test_y, n_classes)
     model = create_merged_model('lexicon_cnn_bi_lstm', n_classes, shape, (0,), embeddings_matrix, max_length=150)
     model.load_weights(weights_path)
-    score = model.evaluate(test_X, test_y, batch_size=128)
-    print(np.array(score))
+    prob_y = model.predict(test_X)
+    pred_y = np.zeros_like(prob_y)
+    pred_y[np.arange(len(prob_y)), prob_y.argmax(axis=-1)] = 1
+    score = [accuracy_score(test_y, pred_y),
+             accuracy_top_n(test_y, prob_y, n=3),
+             accuracy_top_n(test_y, prob_y, n=5),
+             precision_score(test_y, pred_y, average='micro'),
+             recall_score(test_y, pred_y, average='micro'),
+             f1_score(test_y, pred_y, average='micro'),
+             precision_score(test_y, pred_y, average='macro'),
+             recall_score(test_y, pred_y, average='macro'),
+             f1_score(test_y, pred_y, average='macro')]
+    print(score)
     np.savetxt(file_name, np.array(score))
+
+
+def accuracy_top_n(y_true, y_pred, n=3):
+    return np.mean(np.array([1 if y_t.argmax(axis=-1) in y_p.argsort(axis=-1)[-n:] else 0
+                             for y_t, y_p in zip(y_true, y_pred)]))
 
 
 if __name__ == '__main__':
     # load_sentiment_data()
     # train_semantic_models(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
-    # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model.h5', 30000, 'emotion_bi_lstm.txt', False)
+    test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-19-2.04-old.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
-    train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
+    # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
     # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-42-2.03.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
     # train_semantic_sentiment_merged_model(30000, 'bi_lstm')
     # test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-70-1.97.h5', 30000, 'emotion_merged_lstm_sentiment.txt')
