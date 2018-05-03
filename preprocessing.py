@@ -4,7 +4,7 @@ import pandas as pd
 from lemmatization import lemmatize
 from lemmatization import pos_tagging
 from nltk.tokenize import TweetTokenizer
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import sent_tokenize
 import ftfy
 from textblob import Word, TextBlob
 
@@ -85,22 +85,6 @@ def get_lemmas(df):
     return df
 
 
-def get_word_embeddings(df):
-    """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word embeddings.
-
-    :param df: data frame containing column tokens for tweet tokens
-    :type df: pandas.DataFrame
-    :return: modified data frame with new column for embedding representation of tweets
-    :rtype: pandas.DataFrame
-    """
-    word_embeddings = load_embeddings('data/glove.twitter.27B.200d.txt')
-    df['embeddings'] = ''
-    for index, row in df.iterrows():
-        embeddings = [encode_word(token, word_embeddings) for sent in row.tokens for token in sent]
-        df.set_value(index=index, col='embeddings', value=embeddings)
-    return df
-
-
 def get_word_encoding_and_embeddings(df, include_emojis=False):
     """ Gets the data frame containing the dataset and converts tweet tokens into corresponding word encodings.
 
@@ -117,37 +101,17 @@ def get_word_encoding_and_embeddings(df, include_emojis=False):
     #               vocab_size=258917, emoji2vec_path='data/emoji2vec-400d.txt'
 
     if include_emojis:
-        word2index, embedding_matrix = load_glove_embeddings('data/w2v.twitter.edinburgh10M.400d.txt',
-                                                             embedding_dim=400, vocab_size=258917,
-                                                             emoji2vec=True, emoji2vec_path='data/emoji2vec-400d.txt',
+        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
+                                                             embedding_dim=200, vocab_size=1193514,
+                                                             emoji2vec=True, emoji2vec_path='data/emoji2vec-200d.txt',
                                                              num_emojis=1661)
     else:
-        word2index, embedding_matrix = load_glove_embeddings('data/w2v.twitter.edinburgh10M.400d.txt',
-                                                             embedding_dim=400, vocab_size=258917,
+        word2index, embedding_matrix = load_glove_embeddings('data/glove.twitter.27B.200d.txt',
+                                                             embedding_dim=200, vocab_size=1193514,
                                                              emoji2vec=False)
     df['encodings'] = df.apply(lambda x: [word2index[token.lower()] if token.lower() in word2index else 0
                                           for sent in x.tokens for token in sent], axis=1)
     return df, embedding_matrix
-
-
-def load_embeddings(file_name):
-    """ Loads word embeddings from the given file
-
-    :param file_name: name of the file containing word embeddings
-    :type file_name: str
-    :return: dictionary of words with their corresponding word embeddings
-    :rtype: dict
-    """
-    embeddings = dict()
-    with open(file_name, 'r', encoding='utf-8') as doc:
-        line = doc.readline()
-        while line != '':
-            line = line.rstrip('\n').lower()
-            parts = line.split(' ')
-            vals = parts[1:]
-            embeddings[parts[0]] = vals
-            line = doc.readline()
-    return embeddings
 
 
 def encode_word(word, embeddings):
