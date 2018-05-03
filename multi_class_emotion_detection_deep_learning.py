@@ -156,7 +156,7 @@ def train_semantic_lexicon_model():
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=500, shuffle=True,
+    model.fit(train_X, train_y, epochs=200, batch_size=1000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.1)
 
 
@@ -253,7 +253,7 @@ def train_semantic_sentiment_merged_model():
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit([train_X, train_X2], train_y, epochs=200, batch_size=500, shuffle=True,
+    model.fit([train_X, train_X2], train_y, epochs=200, batch_size=1000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.1)
 
 
@@ -327,13 +327,12 @@ def test_semantic_sentiment_merged_model(weights_path, file_name):
     shape2 = test_X2[0].shape
 
     model1 = cnn_bidirectional_lstm_model(test_y.shape[1], shape1, embedding_matrix, 150)
-    model1.load_weights('models/multi_emotion_semantic_model-glove-emoji.h5')
     model1.pop()
     model2 = cnn_bidirectional_lstm_model(test_y.shape[1], shape2, lexicon_matrix, 150)
-    model2.load_weights('models/multi_emotion_semantic_model-10-0.46.h5')
     model2.pop()
 
-    merged_out = kl.Multiply()([model1.output, model2.output])
+    merged_out = kl.Add()([model1.output, model2.output])
+    merged_out = kl.Dense(128, activation='relu')(merged_out)
     merged_out = kl.Dropout(0.1)(merged_out)
     merged_out = kl.Dense(test_y.shape[1], activation='sigmoid')(merged_out)
     model = k.Model(inputs=[model1.input, model2.input], outputs=[merged_out])
@@ -369,6 +368,6 @@ if __name__ == '__main__':
     # train_semantic_sentiment_models()
     # test_semantic_sentiment_model('models/multi_emotion_semantic_sentiment_model-11-0.45.h5',
     #                               'scores/multi_emotion_semantic_sentiment_model.txt')
-    train_semantic_sentiment_merged_model()
-    # test_semantic_sentiment_merged_model('models/multi_emotion_sentiment_semantic_merged_model-53-0.42.h5',
-    #                                      'scores/multi_emotion_sentiment_semantic_merged_model.txt')
+    # train_semantic_sentiment_merged_model()
+    test_semantic_sentiment_merged_model('models/multi_emotion_sentiment_semantic_merged_model-23-0.43.h5',
+                                         'scores/multi_emotion_sentiment_semantic_merged_model.txt')
