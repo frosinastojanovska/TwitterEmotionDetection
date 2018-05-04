@@ -302,7 +302,7 @@ def train_semantic_sentiment_merged_model(split, model_type):
     train_y = k.utils.to_categorical(train_y, n_classes)
 
     model1 = create_model(model_type, train_y.shape[1], shape1, embeddings_matrix, 150)
-    model1.load_weights('models/emotion_bi_lstm_semantic_model-glove-emoji.h5')
+    model1.load_weights('models/emotion_bi_lstm_semantic_model-w2-emoji.h5')
     model1.pop()
     model2 = create_model(model_type, train_y.shape[1], shape2, lexicon_matrix, 150)
     model2.load_weights('models/emotion_bi_lstm_semantic_lexicon_model.h5')
@@ -408,10 +408,10 @@ if __name__ == '__main__':
     # train_semantic_models(30000, 'bi_lstm')
     # train_semantic_lexicon_model(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
-    # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-glove-emoji.h5', 30000, 'emotion_bi_lstm.txt', False)
+    # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-w2-emoji.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
     # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
     # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-19-2.08-old.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
-    train_semantic_sentiment_merged_model(30000, 'bi_lstm')
-    # test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model.h5', 30000, 'emotion_merged_lstm_sentiment.txt')
+    # train_semantic_sentiment_merged_model(30000, 'bi_lstm')
+    test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-w2v-emoji.h5', 30000, 'emotion_merged_lstm_sentiment.txt')

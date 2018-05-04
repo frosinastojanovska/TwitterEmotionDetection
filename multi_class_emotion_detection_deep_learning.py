@@ -99,13 +99,13 @@ def load_sentiment_data():
 
         print('Lexicon encoding...')
         df_train, lexicon_matrix = get_lexicon_values(df_train, lexicon_type=2,
-                                                      lexicon_name='w2v-dp-BCC-Lex.csv')
+                                                      lexicon_name='w2v-dp-CC-Lex.csv')
         lexicon_features_train = pad_sequences(df_train.lexicon.values.tolist(), maxlen=150, padding='post')
         df_val, lexicon_matrix = get_lexicon_values(df_val, lexicon_type=2,
-                                                    lexicon_name='w2v-dp-BCC-Lex.csv')
+                                                    lexicon_name='w2v-dp-CC-Lex.csv')
         lexicon_features_val = pad_sequences(df_val.lexicon.values.tolist(), maxlen=150, padding='post')
         df_test, lexicon_matrix = get_lexicon_values(df_test, lexicon_type=2,
-                                                     lexicon_name='w2v-dp-BCC-Lex.csv')
+                                                     lexicon_name='w2v-dp-CC-Lex.csv')
         lexicon_features_test = pad_sequences(df_test.lexicon.values.tolist(), maxlen=150, padding='post')
         np.save('data_multi_class/train_lexicon', lexicon_features_train)
         np.save('data_multi_class/val_lexicon', lexicon_features_val)
@@ -232,7 +232,7 @@ def train_semantic_sentiment_merged_model():
     shape2 = train_X2[0].shape
 
     model1 = cnn_bidirectional_lstm_model(train_y.shape[1], shape1, embedding_matrix, 150)
-    model1.load_weights('models/multi_emotion_semantic_model-glove-emoji.h5')
+    model1.load_weights('models/multi_emotion_semantic_model-w2v-emoji.h5')
     model1.pop()
     model2 = cnn_bidirectional_lstm_model(train_y.shape[1], shape2, lexicon_matrix, 150)
     model2.load_weights('models/multi_emotion_semantic_lexicon_model.h5')
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     # load_data()
     # train_semantic_models()
     # train_semantic_lexicon_model()
-    # test_semantic_model('models/multi_emotion_semantic_model-22-0.45-old.h5', 'scores/multi_emotion_semantic_model.txt')
+    # test_semantic_model('models/multi_emotion_semantic_model-w2v.h5', 'scores/multi_emotion_semantic_model.txt')
     # transfer_learning_semantic_model()
     # test_semantic_model('models/multi_emotion_semantic_model_transfer-67-0.45.h5',
     #                     'scores/multi_emotion_semantic_model_transfer.txt', True)
@@ -369,5 +369,5 @@ if __name__ == '__main__':
     # test_semantic_sentiment_model('models/multi_emotion_semantic_sentiment_model-11-0.45.h5',
     #                               'scores/multi_emotion_semantic_sentiment_model.txt')
     # train_semantic_sentiment_merged_model()
-    test_semantic_sentiment_merged_model('models/multi_emotion_sentiment_semantic_merged_model-23-0.43.h5',
+    test_semantic_sentiment_merged_model('models/multi_emotion_sentiment_semantic_merged_model.h5',
                                          'scores/multi_emotion_sentiment_semantic_merged_model.txt')
