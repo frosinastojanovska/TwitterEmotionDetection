@@ -4,7 +4,7 @@ import itertools
 
 
 def plot_confusion_matrix(matrices, titles, classes):
-    font = {'fontname': 'Calibri', 'size': 20}
+    font = {'fontname': 'Cambria', 'size': 28}
     for matrix, title in zip(matrices, titles):
         fig = plt.figure()
         fig.set_size_inches(8, 6)
