@@ -37,7 +37,7 @@ def load_data():
         print('Fix negative verbs...')
         df = fix_negative_verbs(df)
         print('Encode tweets...')
-        df, embeddings_matrix = get_word_encoding_and_embeddings(df, False)
+        df, embeddings_matrix = get_word_encoding_and_embeddings(df, True)
         word_encodings = pad_sequences(df.encodings.values.tolist(), maxlen=150, padding='post')
         np.save('data/text_emotion_w2vec', word_encodings)
         np.save('data/embeddings_matrix2', embeddings_matrix)
@@ -188,6 +188,30 @@ def train_semantic_models(split, model_type):
     np.savetxt(scores_filepath, np.array(score))
 
 
+def train_semantic_lexicon_model(split, model_type):
+    model_filepath = 'models/emotion_bi_lstm_semantic_lexicon_model-{epoch:02d}-{val_loss:.2f}.h5'
+    logs_filepath = 'logs/emotion_bi_lstm_semantic_lexicon_model.log'
+
+    _, data_y, n_classes, _ = load_data()
+    data2_X, lexicon_matrix = load_sentiment_data()
+    train_X = data2_X[:split]
+    train_y = data_y[:split]
+    shape = train_X[0].shape
+    train_y = k.utils.to_categorical(train_y, n_classes)
+
+    model = create_model(model_type, train_y.shape[1], shape, lexicon_matrix, 150)
+    opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
+    model.compile(optimizer=opt,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
+
+    checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
+                                             save_weights_only=True, mode='min')
+    csv_logger = k.callbacks.CSVLogger(logs_filepath)
+    model.fit(train_X, train_y, epochs=200, batch_size=500, shuffle=True,
+              callbacks=[checkpoint, csv_logger], validation_split=0.1)
+
+
 def test_semantic_model(model_type, weights_path, split, file_name, transfer=False):
     data_X, data_y, n_classes, embedding_matrix = load_data()
     embedding_matrix = normalize(embedding_matrix, axis=1, norm='l2', copy=False)
@@ -268,35 +292,44 @@ def train_semantic_sentiment_models(split, model_type):
 def train_semantic_sentiment_merged_model(split, model_type):
     model_filepath = 'models/emotion_merged_semantic_sentiment_model-{epoch:02d}-{val_loss:.2f}.h5'
     logs_filepath = 'logs/emotion_merged_semantic_sentiment_model.log'
-    scores_filepath = 'scores/emotion_merged_semantic_sentiment_model.txt'
     data_X, data_y, n_classes, embeddings_matrix = load_data()
+    data_X2, lexicon_matrix = load_sentiment_data()
     train_X = data_X[:split]
+    train_X2 = data_X2[:split]
     train_y = data_y[:split]
-    test_X = data_X[split:]
-    test_y = data_y[split:]
-    shape = train_X[0].shape
+    shape1 = train_X[0].shape
+    shape2 = train_X2[0].shape
     train_y = k.utils.to_categorical(train_y, n_classes)
-    test_y = k.utils.to_categorical(test_y, n_classes)
-    pretrained_model = embedding_to_sentiment_model((1,), embeddings_matrix, 1, 1)
-    pretrained_model.load_weights('models/embedding_sentiment_model.h5')
-    embeddings_matrix = pretrained_model.layers[1].get_weights()[0]
 
-    model = create_model(model_type, n_classes, shape, embeddings_matrix, max_length=150)
+    model1 = create_model(model_type, train_y.shape[1], shape1, embeddings_matrix, 150)
+    model1.load_weights('models/emotion_bi_lstm_semantic_model-w2-emoji.h5')
+    model1.pop()
+    model2 = create_model(model_type, train_y.shape[1], shape2, lexicon_matrix, 150)
+    model2.load_weights('models/emotion_bi_lstm_semantic_lexicon_model.h5')
+    model2.pop()
+
+    merged_out = kl.Add()([model1.output, model2.output])
+    merged_out = kl.Dense(128, activation='relu')(merged_out)
+    merged_out = kl.Dropout(0.1)(merged_out)
+    merged_out = kl.Dense(train_y.shape[1], activation='sigmoid')(merged_out)
+    model = k.Model(inputs=[model1.input, model2.input], outputs=[merged_out])
+
+    opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
+    model.compile(optimizer=opt,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
     # checkpoint
     checkpoint = k.callbacks.ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True,
                                              save_weights_only=True, mode='min')
     csv_logger = k.callbacks.CSVLogger(logs_filepath)
-    model.fit(train_X, train_y, epochs=200, batch_size=1000, shuffle=True,
+    model.fit([train_X, train_X2], train_y, epochs=200, batch_size=1000, shuffle=True,
               callbacks=[checkpoint, csv_logger], validation_split=0.2)
-
-    score = model.evaluate(test_X, test_y, batch_size=128)
-    np.savetxt(scores_filepath, np.array(score))
 
 
 def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
     data_X, data_y, n_classes, embeddings_matrix = load_data()
     data2_X, lexicon_matrix = load_sentiment_data()
-    lexicon_matrix = normalize(lexicon_matrix, axis=1, norm='l2', copy=False)
+    embeddings_matrix = normalize(embeddings_matrix, axis=1, norm='l2', copy=False)
     test_X = data_X[split:]
     test_X2 = data2_X[split:]
     test_y = data_y[split:]
@@ -305,7 +338,7 @@ def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
     test_y = k.utils.to_categorical(test_y, n_classes)
     model = create_merged_model(model_type, n_classes, shape1, shape2, embeddings_matrix, lexicon_matrix, 150)
     model.load_weights(weights_path)
-    prob_y = model.predict(test_X)
+    prob_y = model.predict([test_X, test_X2])
     pred_y = np.zeros_like(prob_y)
     pred_y[np.arange(len(prob_y)), prob_y.argmax(axis=-1)] = 1
     score = [accuracy_score(test_y, pred_y),
@@ -323,13 +356,33 @@ def test_semantic_sentiment_model(model_type, weights_path, split, file_name):
 
 def test_semantic_sentiment_merged_model(weights_path, split, file_name):
     data_X, data_y, n_classes, embeddings_matrix = load_data()
+    data2_X, lexicon_matrix = load_sentiment_data()
+    embeddings_matrix = normalize(embeddings_matrix, axis=1, norm='l2', copy=False)
     test_X = data_X[split:]
+    test_X2 = data2_X[split:]
     test_y = data_y[split:]
-    shape = test_X[0].shape
+    shape1 = test_X[0].shape
+    shape2 = test_X2[0].shape
     test_y = k.utils.to_categorical(test_y, n_classes)
-    model = create_merged_model('lexicon_cnn_bi_lstm', n_classes, shape, (0,), embeddings_matrix, max_length=150)
+
+    model1 = create_model('bi_lstm', test_y.shape[1], shape1, embeddings_matrix, 150)
+    model1.pop()
+    model2 = create_model('bi_lstm', test_y.shape[1], shape2, lexicon_matrix, 150)
+    model2.pop()
+
+    merged_out = kl.Add()([model1.output, model2.output])
+    merged_out = kl.Dense(128, activation='relu')(merged_out)
+    merged_out = kl.Dropout(0.1)(merged_out)
+    merged_out = kl.Dense(test_y.shape[1], activation='sigmoid')(merged_out)
+    model = k.Model(inputs=[model1.input, model2.input], outputs=[merged_out])
+
+    opt = k.optimizers.Adam(lr=0.001, amsgrad=True)
+    model.compile(optimizer=opt,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top_3_accuracy, k.metrics.top_k_categorical_accuracy])
+
     model.load_weights(weights_path)
-    prob_y = model.predict(test_X)
+    prob_y = model.predict([test_X, test_X2])
     pred_y = np.zeros_like(prob_y)
     pred_y[np.arange(len(prob_y)), prob_y.argmax(axis=-1)] = 1
     score = [accuracy_score(test_y, pred_y),
@@ -353,11 +406,12 @@ def accuracy_top_n(y_true, y_pred, n=3):
 if __name__ == '__main__':
     # load_sentiment_data()
     # train_semantic_models(30000, 'bi_lstm')
+    # train_semantic_lexicon_model(30000, 'bi_lstm')
     # transfer_learning(30000, 'bi_lstm')
-    test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-19-2.04-old.h5', 30000, 'emotion_bi_lstm.txt', False)
+    # test_semantic_model('bi_lstm', 'models/emotion_bi_lstm_semantic_model-w2-emoji.h5', 30000, 'emotion_bi_lstm.txt', False)
     # test_semantic_model('lstm1', 'models/emotion_transfer_lstm1_semantic_model.h5', 30000,
     #                     'emotion_transfer_lstm1.txt', True)
     # train_semantic_sentiment_models(30000, 'cnn_bi_lstm')
-    # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-42-2.03.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
+    # test_semantic_sentiment_model('cnn_bi_lstm', 'models/emotion_cnn_bi_lstm_semantic_sentiment_model-19-2.08-old.h5', 30000, 'emotion_cnn_bi_lstm_sentiment.txt')
     # train_semantic_sentiment_merged_model(30000, 'bi_lstm')
-    # test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-70-1.97.h5', 30000, 'emotion_merged_lstm_sentiment.txt')
+    test_semantic_sentiment_merged_model('models/emotion_merged_semantic_sentiment_model-w2v-emoji.h5', 30000, 'emotion_merged_lstm_sentiment.txt')
