@@ -3,10 +3,11 @@ import numpy as np
 import itertools
 
 
-def plot_confusion_matrix(matrix1, matrix2, matrix3, matrix4, classes):
+def plot_confusion_matrix(matrices, titles, classes):
     font = {'fontname': 'Calibri', 'size': 20}
-    for matrix, title in zip([matrix1, matrix2, matrix3, matrix4], ['Random Forest', 'SVM', 'LDA', 'Multilayer Perceptron']):
-        plt.figure()
+    for matrix, title in zip(matrices, titles):
+        fig = plt.figure()
+        fig.set_size_inches(8, 6)
         plt.imshow(matrix, interpolation='nearest', cmap=plt.cm.Blues)
         plt.title(title, weight='bold', **font)
         plt.colorbar()
@@ -57,7 +58,9 @@ if __name__ == '__main__':
                                             [0, 67, 151, 849, 38],
                                             [0, 50, 95, 19, 975]])
 
-    plot_confusion_matrix(confusion_matrix_random_forest,
+    plot_confusion_matrix([confusion_matrix_random_forest,
                           confusion_matrix_lda,
                           confusion_matrix_svm,
-                          confusion_matrix_perceptron, classes)
+                          confusion_matrix_perceptron],
+                          ['Random Forest', 'SVM', 'LDA', 'Multilayer Perceptron'],
+                          classes)
